@@ -97,7 +97,12 @@ pub async fn bundle(
   let bundle_type = match maybe_bundle_type.as_deref() {
     Some("module") | None => emit::BundleType::Module,
     Some("classic") => emit::BundleType::Classic,
-    Some(value) => return Err(JsValue::from(js_sys::Error::new(&format!("Unsupported bundle type \"{}\"", value)))),
+    Some(value) => {
+      return Err(JsValue::from(js_sys::Error::new(&format!(
+        "Unsupported bundle type \"{}\"",
+        value
+      ))))
+    }
   };
   let bundle_emit = emit::bundle(
     &graph,
@@ -112,6 +117,45 @@ pub async fn bundle(
 }
 
 #[wasm_bindgen]
-pub async fn emit(root: String, options: JsValue) -> Result<(), JsValue> {
-  Ok(())
+pub async fn transpile(
+  root: String,
+  load: js_sys::Function,
+  options: JsValue,
+) -> Result<(), JsValue> {
+  let root = ModuleSpecifier::parse(&root)
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+
+  let maybe_imports = None;
+
+  let mut loader = JsLoader::new(load);
+
+  let graph = deno_graph::create_graph(
+    vec![root],
+    false,
+    maybe_imports,
+    &mut loader,
+    None,
+    None,
+    None,
+  )
+  .await;
+
+  graph
+    .valid()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+
+  let map = HashMap::new();
+
+  for module in graph.modules() {
+    if let Some(parsed_source) = module.maybe_parsed_source {
+      // TODO remove unwrap
+      let emit_options = Default::default();
+      let transpiled_source = parsed_source.transpile(&emit_options).unwrap();
+
+      map.insert(module.specifier.to_string(), transpiled_source.text);
+    }
+  }
+
+  todo!()
+  //Ok(map)
 }

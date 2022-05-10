@@ -2,7 +2,7 @@
 
 import {
   bundle as jsBundle,
-  emit as jsEmit,
+  transpile,
 } from "./lib/deno_emit.generated.js";
 
 import type { CacheSetting } from "https://deno.land/x/deno_cache@0.2.0/file_fetcher.ts";
@@ -34,6 +34,16 @@ export interface BundleOptions {
     isDynamic: boolean,
   ): Promise<LoadResponse | undefined>;
   type?: "module" | "classic";
+}
+
+export interface EmitOptions {
+  allowRemote?: boolean;
+  cacheRoot?: string;
+  cacheSetting?: CacheSetting;
+  //compilerOptions?: CompilerOptions;
+  //imports: Record<string, string[]>;
+  // load?( specifier: string, isDynamic: boolean,): Promise<LoadResponse | undefined>;
+  //type?: "module" | "classic";
 }
 
 export interface CompilerOptions {
@@ -72,6 +82,16 @@ export async function bundle(
   return jsBundle(root, bundleLoad, imports, undefined);
 }
 
-export function emit(root: string): Promise<void> {
-  return jsEmit(root, undefined);
+export async function emit(root: string, options: EmitOptions = {}): Promise<void> {
+  const {
+    cacheSetting,
+    cacheRoot,
+    allowRemote,
+  } = options;
+
+  const { createCache } = await import( "https://deno.land/x/deno_cache@0.2.0/mod.ts");
+  const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
+  let emitLoad = cache.load;
+
+  return transpile(root, emitLoad, undefined);
 }
