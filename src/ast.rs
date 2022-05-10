@@ -150,6 +150,7 @@ impl From<&EmitOptions> for typescript::strip::Config {
       no_empty_export: true,
       pragma: Some(options.jsx_factory.clone()),
       pragma_frag: Some(options.jsx_fragment_factory.clone()),
+      ts_enum_config: Default::default(),
     }
   }
 }
@@ -203,7 +204,8 @@ fn fold_program(
     }),
     helpers::inject_helpers(),
     Optional::new(
-      typescript::strip::strip_with_config(options.into()),
+      // TODO should we use mark or Mark::new here?
+      typescript::strip::strip_with_config(options.into(), Mark::new()),
       !options.transform_jsx
     ),
     Optional::new(
@@ -238,7 +240,12 @@ pub(crate) fn transpile_module(
   let input = StringInput::from(&*source_file);
   let comments = SingleThreadedComments::default();
   let syntax = get_syntax(media_type);
-  let lexer = Lexer::new(syntax, deno_ast::TARGET, input, Some(&comments));
+  let lexer = Lexer::new(
+    syntax,
+    deno_ast::swc::ast::EsVersion::Es2022,
+    input,
+    Some(&comments),
+  );
   let mut parser = deno_ast::swc::parser::Parser::new_from(lexer);
   let module = parser.parse_module().map_err(|err| {
     let location = cm.lookup_char_pos(err.span().lo);
@@ -253,7 +260,7 @@ pub(crate) fn transpile_module(
     }
   })?;
 
-  let top_level_mark = Mark::fresh(Mark::root());
+  let top_level_mark = Mark::new();
   let program = fold_program(
     Program::Module(module),
     emit_options,

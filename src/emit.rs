@@ -53,9 +53,15 @@ impl swc::bundler::Load for BundleLoader<'_> {
     match file_name {
       swc::common::FileName::Url(specifier) => {
         if let Some(m) = self.graph.get(specifier) {
+          let source = if let Some(s) = m.maybe_source.as_ref() {
+            s.to_string()
+          } else {
+            "".to_string()
+          };
+          // FIXME(bartlomieju): this should use `parsed_source.transpile()` instead?
           let (fm, module) = ast::transpile_module(
             specifier,
-            &m.source,
+            &source,
             m.media_type,
             self.emit_options,
             self.cm.clone(),
@@ -149,7 +155,7 @@ pub fn bundle(
     let mut entries = HashMap::new();
     entries.insert(
       "bundle".to_string(),
-      swc::common::FileName::Url(graph.roots[0].clone()),
+      swc::common::FileName::Url(graph.roots[0].0.clone()),
     );
     let output = bundler.bundle(entries)?;
     let mut buf = Vec::new();

@@ -67,7 +67,11 @@ export async function bundle(
       "https://deno.land/x/deno_cache@0.2.0/mod.ts"
     );
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
-    bundleLoad = cache.load;
+    // FIXME(bartlomieju): this "kind" field in here is quirky
+    bundleLoad = async (arg1, arg2) => {
+      const r = await cache.load(arg1, arg2);
+      return { ...r, kind: "module" };
+    };
   }
   return jsBundle(root, bundleLoad, imports, undefined);
 }

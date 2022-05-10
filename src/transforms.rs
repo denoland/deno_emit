@@ -51,7 +51,10 @@ impl Fold for DownlevelImportsFolder {
             ImportSpecifier::Named(specifier) => {
               Some(match specifier.imported.as_ref() {
                 Some(name) => create_key_value(
-                  name.sym.to_string(),
+                  match name {
+                    ModuleExportName::Ident(i) => i.sym.to_string(),
+                    ModuleExportName::Str(s) => s.value.to_string(),
+                  },
                   specifier.local.sym.to_string(),
                 ),
                 None => create_assignment(specifier.local.sym.to_string()),
@@ -220,7 +223,7 @@ fn create_await_import_expr(module_specifier: &str) -> Box<swc_ast::Expr> {
     span: DUMMY_SP,
     arg: Box::new(Expr::Call(CallExpr {
       span: DUMMY_SP,
-      callee: ExprOrSuper::Expr(Box::new(Expr::Ident(Ident {
+      callee: Callee::Expr(Box::new(Expr::Ident(Ident {
         span: DUMMY_SP,
         sym: "import".into(),
         optional: false,
@@ -229,11 +232,8 @@ fn create_await_import_expr(module_specifier: &str) -> Box<swc_ast::Expr> {
         spread: None,
         expr: Box::new(Expr::Lit(Lit::Str(Str {
           span: DUMMY_SP,
-          has_escape: false,
-          kind: StrKind::Normal {
-            contains_quote: false,
-          },
           value: module_specifier.into(),
+          raw: None,
         }))),
       }],
       type_args: None,
