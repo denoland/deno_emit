@@ -15,8 +15,7 @@ Deno.test({
 Deno.test({
   name: "transpile - basic",
   async fn() {
-    const url = new URL("./mod.ts", import.meta.url);
-    // console.log("url", url);
+    const url = new URL("./testdata/mod.ts", import.meta.url);
     const result = await emit(url.href);
     console.log(result);
   },
