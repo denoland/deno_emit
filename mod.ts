@@ -1,9 +1,6 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
-import {
-  bundle as jsBundle,
-  transpile,
-} from "./lib/deno_emit.generated.js";
+import { bundle as jsBundle, transpile } from "./lib/deno_emit.generated.js";
 
 import type { CacheSetting } from "https://deno.land/x/deno_cache@0.2.0/file_fetcher.ts";
 
@@ -86,14 +83,19 @@ export async function bundle(
   return jsBundle(root, bundleLoad, imports, undefined);
 }
 
-export async function emit(root: string, options: EmitOptions = {}): Promise<void> {
+export async function emit(
+  root: string,
+  options: EmitOptions = {},
+): Promise<Record<string, string>> {
   const {
     cacheSetting,
     cacheRoot,
     allowRemote,
   } = options;
 
-  const { createCache } = await import( "https://deno.land/x/deno_cache@0.2.0/mod.ts");
+  const { createCache } = await import(
+    "https://deno.land/x/deno_cache@0.2.0/mod.ts"
+  );
   const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
   // FIXME(bartlomieju): this "kind" field in here is quirky
   const emitLoad = async (arg1, arg2) => {
