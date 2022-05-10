@@ -15,8 +15,7 @@ name = "deno_emit"
 [dependencies]
 anyhow = "1.0.44"
 base64 = "0.13.0"
-cfg-if = "1.0.0"
-deno_ast = { version = "0.14.0", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit"] }
+deno_ast = { version = "0.14.0", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
 deno_graph = "0.26.0"
 futures = "0.3.17"
 js-sys = { version = "0.3.55", optional = true }

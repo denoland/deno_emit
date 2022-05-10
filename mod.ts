@@ -77,7 +77,11 @@ export async function bundle(
       "https://deno.land/x/deno_cache@0.2.0/mod.ts"
     );
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
-    bundleLoad = cache.load;
+    // FIXME(bartlomieju): this "kind" field in here is quirky
+    bundleLoad = async (arg1, arg2) => {
+      const r = await cache.load(arg1, arg2);
+      return { ...r, kind: "module" };
+    };
   }
   return jsBundle(root, bundleLoad, imports, undefined);
 }
@@ -91,7 +95,11 @@ export async function emit(root: string, options: EmitOptions = {}): Promise<voi
 
   const { createCache } = await import( "https://deno.land/x/deno_cache@0.2.0/mod.ts");
   const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
-  let emitLoad = cache.load;
+  // FIXME(bartlomieju): this "kind" field in here is quirky
+  const emitLoad = async (arg1, arg2) => {
+    const r = await cache.load(arg1, arg2);
+    return { ...r, kind: "module" };
+  };
 
   return transpile(root, emitLoad, undefined);
 }

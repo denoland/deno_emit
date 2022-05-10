@@ -14,15 +14,14 @@ impl Hook for BundleHook {
     &self,
     span: Span,
     module_record: &ModuleRecord,
-  ) -> Result<Vec<deno_ast::swc::ast::KeyValueProp>> {
+  ) -> Result<Vec<deno_ast::swc::ast::KeyValueProp>, anyhow::Error> {
     Ok(vec![
       ast::KeyValueProp {
         key: ast::PropName::Ident(ast::Ident::new("url".into(), span)),
         value: Box::new(ast::Expr::Lit(ast::Lit::Str(ast::Str {
           span,
           value: module_record.file_name.to_string().into(),
-          kind: ast::StrKind::Synthesized,
-          has_escape: false,
+          raw: None,
         }))),
       },
       ast::KeyValueProp {
@@ -30,17 +29,11 @@ impl Hook for BundleHook {
         value: Box::new(if module_record.is_entry {
           ast::Expr::Member(ast::MemberExpr {
             span,
-            obj: ast::ExprOrSuper::Expr(Box::new(ast::Expr::MetaProp(
-              ast::MetaPropExpr {
-                meta: ast::Ident::new("import".into(), span),
-                prop: ast::Ident::new("meta".into(), span),
-              },
-            ))),
-            prop: Box::new(ast::Expr::Ident(ast::Ident::new(
-              "main".into(),
+            obj: Box::new(ast::Expr::MetaProp(ast::MetaPropExpr {
               span,
-            ))),
-            computed: false,
+              kind: ast::MetaPropKind::ImportMeta,
+            })),
+            prop: ast::MemberProp::Ident(ast::Ident::new("main".into(), span)),
           })
         } else {
           ast::Expr::Lit(ast::Lit::Bool(ast::Bool { span, value: false }))

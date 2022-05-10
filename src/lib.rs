@@ -1,8 +1,5 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
-#[macro_use]
-extern crate cfg_if;
-
 mod ast;
 mod bundle_hook;
 mod emit;
@@ -13,6 +10,14 @@ use anyhow::anyhow;
 use deno_ast::ModuleSpecifier;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+extern "C" {
+  // Use `js_namespace` here to bind `console.log(..)` instead of just
+  // `log(..)`
+  #[wasm_bindgen(js_namespace = console)]
+  fn log(s: &str);
+}
 
 struct JsLoader {
   load: js_sys::Function,
@@ -45,12 +50,10 @@ impl deno_graph::source::Loader for JsLoader {
         }
         Err(err) => Err(err),
       };
-      (
-        specifier.clone(),
-        response
-          .map(|value| value.into_serde().unwrap())
-          .map_err(|_| anyhow!("load rejected or errored")),
-      )
+
+      response
+        .map(|value| value.into_serde().unwrap())
+        .map_err(|_| anyhow!("load rejected or errored"))
     };
     Box::pin(f)
   }
@@ -85,10 +88,11 @@ pub async fn bundle(
     maybe_imports = Some(imports);
   }
   let graph = deno_graph::create_graph(
-    vec![root],
+    vec![(root, deno_graph::ModuleKind::Esm)],
     false,
     maybe_imports,
     &mut loader,
+    None,
     None,
     None,
     None,
@@ -120,8 +124,8 @@ pub async fn bundle(
 pub async fn transpile(
   root: String,
   load: js_sys::Function,
-  options: JsValue,
-) -> Result<(), JsValue> {
+  _options: JsValue,
+) -> Result<JsValue, JsValue> {
   let root = ModuleSpecifier::parse(&root)
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
 
@@ -130,10 +134,11 @@ pub async fn transpile(
   let mut loader = JsLoader::new(load);
 
   let graph = deno_graph::create_graph(
-    vec![root],
+    vec![(root, deno_graph::ModuleKind::Esm)],
     false,
     maybe_imports,
     &mut loader,
+    None,
     None,
     None,
     None,
@@ -144,10 +149,10 @@ pub async fn transpile(
     .valid()
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
 
-  let map = HashMap::new();
+  let mut map = HashMap::new();
 
   for module in graph.modules() {
-    if let Some(parsed_source) = module.maybe_parsed_source {
+    if let Some(parsed_source) = &module.maybe_parsed_source {
       // TODO remove unwrap
       let emit_options = Default::default();
       let transpiled_source = parsed_source.transpile(&emit_options).unwrap();
@@ -156,6 +161,7 @@ pub async fn transpile(
     }
   }
 
+  // JsValue::from_serde(&map)
+  //   .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))
   todo!()
-  //Ok(map)
 }
