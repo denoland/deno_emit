@@ -121,6 +121,54 @@ pub async fn bundle(
 }
 
 #[wasm_bindgen]
-pub async fn emit(_root: String, _options: JsValue) -> Result<(), JsValue> {
-  Ok(())
+pub async fn transpile(
+  root: String,
+  load: js_sys::Function,
+  _options: JsValue,
+) -> Result<JsValue, JsValue> {
+  let root = ModuleSpecifier::parse(&root)
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+
+  let maybe_imports = None;
+
+  let mut loader = JsLoader::new(load);
+
+  let graph = deno_graph::create_graph(
+    vec![(root, deno_graph::ModuleKind::Esm)],
+    false,
+    maybe_imports,
+    &mut loader,
+    None,
+    None,
+    None,
+    None,
+  )
+  .await;
+
+  graph
+    .valid()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+
+  let mut map = HashMap::new();
+
+  for module in graph.modules() {
+    if let Some(parsed_source) = &module.maybe_parsed_source {
+      // TODO: add emit options
+      let emit_options = Default::default();
+      let transpiled_source = parsed_source
+        .transpile(&emit_options)
+        .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+
+      map.insert(module.specifier.to_string(), transpiled_source.text);
+      if let Some(source_map) = &transpiled_source.source_map {
+        map.insert(
+          format!("{}.map", module.specifier.as_str()),
+          source_map.to_string(),
+        );
+      }
+    }
+  }
+
+  JsValue::from_serde(&map)
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))
 }
