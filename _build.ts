@@ -10,7 +10,7 @@ await Deno.permissions.request({ name: "read" });
 await Deno.permissions.request({ name: "write" });
 
 console.log(
-  `${colors.bold(colors.green("Building"))} emit web assembly...`,
+  `${colors.bold(colors.green("Building"))} deno_emit web assembly...`,
 );
 
 const home = Deno.env.get("HOME");
@@ -157,5 +157,5 @@ if (!(await denoFmtCmdStatus).success) {
 }
 
 console.log(
-  `${colors.bold(colors.green("Finished"))} emit web assembly.`,
+  `${colors.bold(colors.green("Finished"))} deno_emit web assembly.`,
 );
