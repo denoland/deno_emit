@@ -1,37 +1,5 @@
-[package]
-name = "deno_emit"
-version = "0.0.2"
-edition = "2021"
-description = "module transpiling and emitting for deno"
-homepage = "https://deno.land/"
-repository = "https://github.com/denoland/deno_emit"
-authors = ["the Deno authors"]
-license = "MIT"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
-name = "deno_emit"
-
-[dependencies]
-anyhow = "1.0.44"
-base64 = "0.13.0"
-deno_ast = { version = "0.14.0", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
-deno_graph = "0.26.0"
-futures = "0.3.17"
-js-sys = { version = "0.3.55", optional = true }
-parking_lot = { version = "0.11.2", features = ["wasm-bindgen"] }
-serde = { version = "1.0.130", features = ["derive", "rc"] }
-serde_json = { version = "1.0.68", features = ["preserve_order"] }
-wasm-bindgen = { version = "0.2.80", features = ["serde-serialize"], optional = true }
-wasm-bindgen-futures = { version = "0.4.28", optional = true }
-
-[features]
-default = ["rust", "wasm"]
-rust = []
-wasm = ["js-sys", "wasm-bindgen", "wasm-bindgen-futures"]
-
-[profile.release]
-codegen-units = 1
-incremental = true
-lto = true
-opt-level = "z"
+[workspace]
+members = [
+  "rs-lib",
+  "wasm"
+]

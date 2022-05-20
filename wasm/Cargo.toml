@@ -1,0 +1,27 @@
+[package]
+name = "deno_emit_wasm"
+version = "0.0.0"
+edition = "2021"
+description = "module transpiling and emitting for deno"
+homepage = "https://deno.land/"
+repository = "https://github.com/denoland/deno_emit"
+authors = ["the Deno authors"]
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "emit"
+
+[dependencies]
+anyhow = "1.0.44"
+base64 = "0.13.0"
+deno_emit = { path = "../rs-lib" }
+js-sys = { version = "0.3.55" }
+wasm-bindgen = { version = "0.2.80", features = ["serde-serialize"] }
+wasm-bindgen-futures = { version = "0.4.28" }
+
+[profile.release]
+codegen-units = 1
+incremental = true
+lto = true
+opt-level = "z"

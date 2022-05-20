@@ -37,10 +37,9 @@ if (!(await cargoFmtCmdStatus).success) {
 const cargoBuildCmd = [
   "cargo",
   "build",
+  "-p",
+  "deno_emit_wasm",
   "--release",
-  "--no-default-features",
-  "--features",
-  "wasm",
   "--target",
   "wasm32-unknown-unknown",
 ];
@@ -63,7 +62,7 @@ await emptyDir("./target/wasm32-bindgen-deno-js");
 
 const wasmBindGenCmd = [
   "wasm-bindgen",
-  "./target/wasm32-unknown-unknown/release/deno_emit.wasm",
+  "./target/wasm32-unknown-unknown/release/emit.wasm",
   "--target",
   "deno",
   "--weak-refs",
@@ -83,7 +82,7 @@ console.log(
 
 const denoGraphWasmDest = "./lib/deno_emit_bg.wasm";
 await Deno.copyFile(
-  "./target/wasm32-bindgen-deno-js/deno_emit_bg.wasm",
+  "./target/wasm32-bindgen-deno-js/emit_bg.wasm",
   denoGraphWasmDest,
 );
 console.log(`  copy ${colors.yellow(denoGraphWasmDest)}`);
