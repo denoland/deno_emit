@@ -148,6 +148,7 @@ export function bundle(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     bundleLoad = cache.load;
   }
+  root = new URL(root, import.meta.url).toString();
   return jsBundle(
     root,
     bundleLoad,
@@ -170,6 +171,7 @@ export function emit(
   root: string,
   options: EmitOptions = {},
 ): Promise<Record<string, string>> {
+  root = new URL(root, import.meta.url).toString();
   const { cacheSetting, cacheRoot, allowRemote } = options;
   const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
   return transpile(root, cache.load, undefined);
