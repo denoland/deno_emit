@@ -35,7 +35,10 @@ pub struct BundleOptions {
 #[derive(Debug)]
 pub struct BundleEmit {
   pub code: String,
-  #[cfg_attr(feature = "serialization", serde(rename = "map", skip_serializing_if = "Option::is_none"))]
+  #[cfg_attr(
+    feature = "serialization",
+    serde(rename = "map", skip_serializing_if = "Option::is_none")
+  )]
   pub maybe_map: Option<String>,
 }
 
