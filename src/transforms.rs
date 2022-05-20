@@ -381,7 +381,7 @@ mod test {
     test_transform(
       StripExportsFolder,
       "export default function test() {}",
-      "function test() {\n}",
+      "function test() {}",
     );
   }
 
@@ -403,7 +403,7 @@ mod test {
     test_transform(
       StripExportsFolder,
       "export function test() {}",
-      "function test() {\n}",
+      "function test() {}",
     );
 
     test_transform(StripExportsFolder, "export enum Test {}", "enum Test {\n}");

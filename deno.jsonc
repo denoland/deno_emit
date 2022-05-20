@@ -2,7 +2,8 @@
   "fmt": {
     "files": {
       "exclude": [
-        "static"
+        "static",
+        "target"
       ]
     }
   },
