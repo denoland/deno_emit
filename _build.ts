@@ -127,7 +127,7 @@ const wasm = wasmInstance.exports;
 `;
 
 const generatedJs = await Deno.readTextFile(
-  "./target/wasm32-bindgen-deno-js/deno_emit.js",
+  "./target/wasm32-bindgen-deno-js/emit.js",
 );
 const bindingJs = `${copyrightHeader}
 // @generated file from build script, do not edit
