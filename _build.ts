@@ -1,4 +1,4 @@
-// Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 import * as colors from "https://deno.land/std@0.140.0/fmt/colors.ts";
 import { emptyDir } from "https://deno.land/std@0.140.0/fs/empty_dir.ts";

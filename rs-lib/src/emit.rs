@@ -1,4 +1,4 @@
-// Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 use crate::ast;
 use crate::ast::CompilerOptions;
@@ -9,7 +9,6 @@ use crate::bundle_hook::BundleHook;
 use anyhow::anyhow;
 use anyhow::Result;
 use deno_ast::swc;
-use serde::Serialize;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -32,10 +31,11 @@ pub struct BundleOptions {
   pub maybe_compiler_options: Option<CompilerOptions>,
 }
 
-#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "serialization", derive(serde::Serialize))]
+#[derive(Debug)]
 pub struct BundleEmit {
   pub code: String,
-  #[serde(rename = "map", skip_serializing_if = "Option::is_none")]
+  #[cfg_attr(feature = "serialization", serde(rename = "map", skip_serializing_if = "Option::is_none"))]
   pub maybe_map: Option<String>,
 }
 

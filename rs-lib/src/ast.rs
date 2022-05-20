@@ -1,4 +1,4 @@
-// Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 use crate::text;
 use crate::transforms;
@@ -29,8 +29,6 @@ use deno_ast::Diagnostic;
 use deno_ast::LineAndColumnDisplay;
 use deno_ast::ModuleSpecifier;
 use deno_graph::MediaType;
-use serde::Deserialize;
-use serde_json::Value;
 use std::rc::Rc;
 
 pub enum ImportsNotUsedAsValues {
@@ -42,8 +40,9 @@ pub enum ImportsNotUsedAsValues {
 /// This is a deserializable structure of the `"compilerOptions"` section of a
 /// TypeScript or Deno configuration file which can effect how the emitting is
 /// handled, all other options don't impact the output.
-#[derive(Debug, Deserialize)]
-#[serde(default, rename_all = "camelCase")]
+#[cfg_attr(feature = "serialization", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serialization", serde(default, rename_all = "camelCase"))]
+#[derive(Debug)]
 pub struct CompilerOptions {
   pub check_js: bool,
   pub emit_decorator_metadata: bool,
@@ -97,13 +96,6 @@ impl Default for EmitOptions {
       source_map: false,
       transform_jsx: true,
     }
-  }
-}
-
-impl From<Value> for EmitOptions {
-  fn from(value: Value) -> Self {
-    let options: CompilerOptions = serde_json::from_value(value).unwrap();
-    options.into()
   }
 }
 

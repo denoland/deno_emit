@@ -1,4 +1,4 @@
-// Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 use deno_ast::swc::ast as swc_ast;
 use deno_ast::swc::common::DUMMY_SP;
