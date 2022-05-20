@@ -3,14 +3,14 @@ import {
   assert,
   assertEquals,
   assertStringIncludes,
-} from "https://deno.land/std@0.138.0/testing/asserts.ts";
+} from "https://deno.land/std@0.140.0/testing/asserts.ts";
 import { bundle, emit } from "./mod.ts";
 
 Deno.test({
   name: "bundle - basic",
   async fn() {
     const result = await bundle(
-      "https://deno.land/std@0.113.0/examples/chat/server.ts",
+      "https://deno.land/std@0.140.0/examples/chat/server.ts",
     );
     console.log(result);
     assert(result.code);
@@ -26,7 +26,7 @@ Deno.test({
     console.log(result);
     assertEquals(Object.keys(result).length, 1);
     const code = result[Object.keys(result)[0]];
-    assert(code)
+    assert(code);
     assertStringIncludes(code, "export default function hello()");
   },
 });

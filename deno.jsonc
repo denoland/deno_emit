@@ -1,6 +1,21 @@
 {
+  "fmt": {
+    "files": {
+      "exclude": [
+        "static"
+      ]
+    }
+  },
+  "lint": {
+    "files": {
+      "exclude": [
+        "static/*.js",
+        "target"
+      ]
+    }
+  },
   "tasks": {
-    "test": "deno test --no-check --allow-read --allow-net --allow-env --allow-write",
-    "build": "deno run --unstable --allow-run --allow-read --allow-write --allow-env ./_build.ts"
+    "test": "deno test --allow-read --allow-net --allow-env --allow-write",
+    "build": "deno run --allow-run --allow-read --allow-write --allow-env ./_build.ts"
   }
 }

@@ -33,8 +33,11 @@
  */
 
 import { bundle as jsBundle, transpile } from "./lib/deno_emit.generated.js";
-
-import type { CacheSetting } from "https://deno.land/x/deno_cache@0.2.0/file_fetcher.ts";
+import {
+  type CacheSetting,
+  createCache,
+  type FetchCacher,
+} from "https://deno.land/x/deno_cache@0.4.1/mod.ts";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
@@ -44,20 +47,6 @@ export interface BundleEmit {
   map?: string;
 }
 
-/** The response from a `load()` function. Used when providing a custom
- * loader. */
-export interface LoadResponse {
-  /** The string URL of the resource. If there were redirects, the final
-   * specifier should be set here, otherwise the requested specifier. */
-  specifier: string;
-  /** For remote resources, a record of headers should be set, where the key's
-   * have been normalized to be lower case values. */
-  headers?: Record<string, string>;
-  /** The string value of the loaded resources. */
-  content: string;
-}
-
-/** Options which can be set when using the {@linkcode bundle} function. */
 export interface BundleOptions {
   /** Allow remote modules to be loaded or read from the cache. */
   allowRemote?: boolean;
@@ -67,16 +56,11 @@ export interface BundleOptions {
   cacheSetting?: CacheSetting;
   /** Compiler options which can be set when bundling. */
   compilerOptions?: CompilerOptions;
-  /** External modules which are not direct dependencies of the code which
-   * should be in scope when bundling. */
-  imports: Record<string, string[]>;
+  imports?: Record<string, string[]>;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
-  load?(
-    specifier: string,
-    isDynamic: boolean,
-  ): Promise<LoadResponse | undefined>;
+  load?: FetchCacher["load"];
   /** Should the emitted bundle be an ES module or an IIFE script. The default
    * is `"module"` to output a ESM module. */
   type?: "module" | "classic";
@@ -148,32 +132,29 @@ export interface CompilerOptions {
  * @returns a promise which resolves with the emitted bundle (and optional
  *          source map)
  */
-export async function bundle(
+export function bundle(
   root: string,
   options: BundleOptions = {},
 ): Promise<BundleEmit> {
   const {
-    type = "module",
     imports,
     load,
     cacheSetting,
     cacheRoot,
     allowRemote,
-    compilerOptions,
   } = options;
   let bundleLoad = load;
   if (!bundleLoad) {
-    const { createCache } = await import(
-      "https://deno.land/x/deno_cache@0.2.0/mod.ts"
-    );
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
-    // FIXME(bartlomieju): this "kind" field in here is quirky
-    bundleLoad = async (arg1, arg2) => {
-      const r = await cache.load(arg1, arg2);
-      return { ...r, kind: "module" };
-    };
+    bundleLoad = cache.load;
   }
-  return jsBundle(root, bundleLoad, imports, undefined);
+  return jsBundle(
+    root,
+    bundleLoad,
+    JSON.stringify(imports),
+    undefined,
+    undefined,
+  );
 }
 
 /** Transpile TypeScript (or JavaScript) into JavaScript, returning a promise
@@ -185,25 +166,11 @@ export async function bundle(
  *          where the key is the emitted files name and the value is the
  *          source for the file.
  */
-export async function emit(
+export function emit(
   root: string,
   options: EmitOptions = {},
 ): Promise<Record<string, string>> {
-  const {
-    cacheSetting,
-    cacheRoot,
-    allowRemote,
-  } = options;
-
-  const { createCache } = await import(
-    "https://deno.land/x/deno_cache@0.2.0/mod.ts"
-  );
+  const { cacheSetting, cacheRoot, allowRemote } = options;
   const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
-  // FIXME(bartlomieju): this "kind" field in here is quirky
-  const emitLoad = async (arg1, arg2) => {
-    const r = await cache.load(arg1, arg2);
-    return { ...r, kind: "module" };
-  };
-
-  return transpile(root, emitLoad, undefined);
+  return transpile(root, cache.load, undefined);
 }

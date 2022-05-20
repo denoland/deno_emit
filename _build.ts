@@ -1,10 +1,8 @@
-#!/usr/bin/env -S deno run --unstable --allow-run --allow-read --allow-write --allow-env
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
-import * as colors from "https://deno.land/std@0.111.0/fmt/colors.ts";
-import { copy } from "https://deno.land/std@0.111.0/fs/copy.ts";
-import { emptyDir } from "https://deno.land/std@0.111.0/fs/empty_dir.ts";
-import * as path from "https://deno.land/std@0.111.0/path/mod.ts";
+import * as colors from "https://deno.land/std@0.140.0/fmt/colors.ts";
+import { emptyDir } from "https://deno.land/std@0.140.0/fs/empty_dir.ts";
+import * as path from "https://deno.land/std@0.140.0/path/mod.ts";
 
 await Deno.permissions.request({ name: "env" });
 await Deno.permissions.request({ name: "run" });
