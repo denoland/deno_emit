@@ -10,7 +10,7 @@ await Deno.permissions.request({ name: "read" });
 await Deno.permissions.request({ name: "write" });
 
 console.log(
-  `${colors.bold(colors.green("Building"))} deno_emit web assembly...`,
+  `${colors.bold(colors.green("Building"))} emit web assembly...`,
 );
 
 const home = Deno.env.get("HOME");
@@ -80,7 +80,7 @@ console.log(
   `${colors.bold(colors.green("Copying"))} lib wasm...`,
 );
 
-const denoGraphWasmDest = "./lib/deno_emit_bg.wasm";
+const denoGraphWasmDest = "./lib/emit_bg.wasm";
 await Deno.copyFile(
   "./target/wasm32-bindgen-deno-js/emit_bg.wasm",
   denoGraphWasmDest,
@@ -139,7 +139,7 @@ ${generatedJs.replace(/^let\swasmCode\s.+/ms, loader)}
 export const _wasm = wasm;
 export const _wasmInstance = wasmInstance;
 `;
-const libDenoGraphJs = "./lib/deno_emit.generated.js";
+const libDenoGraphJs = "./lib/emit.generated.js";
 console.log(`  write ${colors.yellow(libDenoGraphJs)}`);
 await Deno.writeTextFile(libDenoGraphJs, bindingJs);
 
@@ -147,7 +147,7 @@ const denoFmtCmd = [
   "deno",
   "fmt",
   "--quiet",
-  "./lib/deno_emit.generated.js",
+  "./lib/emit.generated.js",
 ];
 console.log(`  ${colors.bold(colors.gray(denoFmtCmd.join(" ")))}`);
 const denoFmtCmdStatus = Deno.run({ cmd: denoFmtCmd }).status();
@@ -157,5 +157,5 @@ if (!(await denoFmtCmdStatus).success) {
 }
 
 console.log(
-  `${colors.bold(colors.green("Finished"))} deno_emit web assembly.`,
+  `${colors.bold(colors.green("Finished"))} emit web assembly.`,
 );

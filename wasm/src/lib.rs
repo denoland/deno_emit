@@ -42,7 +42,7 @@ impl Loader for JsLoader {
 
       response
         .map(|value| value.into_serde().unwrap())
-        .map_err(|_| anyhow!("load rejected or errored"))
+        .map_err(|err| anyhow!("load rejected or errored: {:#?}", err))
     };
     Box::pin(f)
   }

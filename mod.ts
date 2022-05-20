@@ -32,12 +32,13 @@
  * @module
  */
 
-import { bundle as jsBundle, transpile } from "./lib/deno_emit.generated.js";
+import { bundle as jsBundle, transpile } from "./lib/emit.generated.js";
 import {
   type CacheSetting,
   createCache,
   type FetchCacher,
 } from "https://deno.land/x/deno_cache@0.4.1/mod.ts";
+import { resolve, toFileUrl } from "https://deno.land/std@0.140.0/path/mod.ts";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
@@ -148,7 +149,7 @@ export function bundle(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     bundleLoad = cache.load;
   }
-  root = root instanceof URL ? root : new URL(root, import.meta.url);
+  root = root instanceof URL ? root : toFileUrl(resolve(root));
   return jsBundle(
     root.toString(),
     bundleLoad,
@@ -171,7 +172,7 @@ export function emit(
   root: string | URL,
   options: EmitOptions = {},
 ): Promise<Record<string, string>> {
-  root = root instanceof URL ? root : new URL(root, import.meta.url);
+  root = root instanceof URL ? root : toFileUrl(resolve(root));
   const { cacheSetting, cacheRoot, allowRemote } = options;
   const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
   return transpile(root.toString(), cache.load, undefined);
