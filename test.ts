@@ -19,6 +19,19 @@ Deno.test({
 });
 
 Deno.test({
+  name: "bundle - url",
+  async fn() {
+    const result = await bundle(
+      new URL(
+        "https://deno.land/std@0.140.0/examples/chat/server.ts",
+      ),
+    );
+    console.log(result);
+    assert(result.code);
+  },
+});
+
+Deno.test({
   name: "bundle - relative",
   async fn() {
     const result = await bundle(
@@ -45,6 +58,23 @@ Deno.test({
   async fn() {
     const result = await emit(
       "https://deno.land/std@0.140.0/examples/chat/server.ts",
+    );
+
+    console.log(result);
+    assertEquals(Object.keys(result).length, 18);
+    const code =
+      result["https://deno.land/std@0.140.0/examples/chat/server.ts"];
+    assert(code);
+  },
+});
+
+Deno.test({
+  name: "transpile - url",
+  async fn() {
+    const result = await emit(
+      new URL(
+        "https://deno.land/std@0.140.0/examples/chat/server.ts",
+      ),
     );
 
     console.log(result);
