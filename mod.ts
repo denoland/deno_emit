@@ -136,7 +136,7 @@ export interface CompilerOptions {
  *          source map)
  */
 export function bundle(
-  root: string,
+  root: string | URL,
   options: BundleOptions = {},
 ): Promise<BundleEmit> {
   const {
@@ -151,8 +151,9 @@ export function bundle(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     bundleLoad = cache.load;
   }
+  root = root instanceof URL ? root : new URL(root, import.meta.url);
   return jsBundle(
-    root,
+    root.toString(),
     bundleLoad,
     JSON.stringify(imports),
     undefined,
@@ -170,14 +171,15 @@ export function bundle(
  *          source for the file.
  */
 export function emit(
-  root: string,
+  root: string | URL,
   options: EmitOptions = {},
 ): Promise<Record<string, string>> {
+  root = root instanceof URL ? root : new URL(root, import.meta.url);
   const { cacheSetting, cacheRoot, allowRemote, load } = options;
   let bundleLoad = load;
   if (!bundleLoad) {
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     bundleLoad = cache.load;
   }
-  return transpile(root, bundleLoad, undefined);
+  return transpile(root.toString(), bundleLoad, undefined);
 }
