@@ -54,6 +54,23 @@ Deno.test({
 });
 
 Deno.test({
+  name: "bundle - source",
+  async fn() {
+    const content = await Deno.readTextFile(
+      join(Deno.cwd(), "testdata", "mod.ts"),
+    );
+    const result = await bundle("/src.ts", {
+      load(specifier) {
+        if (specifier !== "file:///src.ts") return Promise.resolve(undefined);
+        return Promise.resolve({ kind: "module", specifier, content });
+      },
+    });
+    console.log(result);
+    assert(result.code);
+  },
+});
+
+Deno.test({
   name: "transpile - remote",
   async fn() {
     const result = await emit(
