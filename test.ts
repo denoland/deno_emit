@@ -110,3 +110,24 @@ Deno.test({
     assertStringIncludes(code, "export default function hello()");
   },
 });
+
+Deno.test({
+  name: "transpile - source",
+  async fn() {
+    const content = await Deno.readTextFile(
+      join(Deno.cwd(), "testdata", "mod.ts"),
+    );
+    const result = await emit("/src.ts", {
+      load(specifier) {
+        if (specifier !== "file:///src.ts") return Promise.resolve(undefined);
+        return Promise.resolve({ kind: "module", specifier, content });
+      },
+    });
+
+    console.log(result);
+    assertEquals(Object.keys(result).length, 1);
+    const code = result[Object.keys(result)[0]];
+    assert(code);
+    assertStringIncludes(code, "export default function hello()");
+  },
+});
