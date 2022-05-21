@@ -56,13 +56,13 @@ Deno.test({
 Deno.test({
   name: "bundle - source",
   async fn() {
-    const content = await Deno.readTextFile(
-      join(Deno.cwd(), "testdata", "mod.ts"),
-    );
     const result = await bundle("/src.ts", {
-      load(specifier) {
-        if (specifier !== "file:///src.ts") return Promise.resolve(undefined);
-        return Promise.resolve({ kind: "module", specifier, content });
+      async load(specifier) {
+        if (specifier !== "file:///src.ts") return undefined;
+        const content = await Deno.readTextFile(
+          join(Deno.cwd(), "testdata", "mod.ts"),
+        );
+        return { kind: "module", specifier, content };
       },
     });
     console.log(result);
@@ -131,13 +131,13 @@ Deno.test({
 Deno.test({
   name: "transpile - source",
   async fn() {
-    const content = await Deno.readTextFile(
-      join(Deno.cwd(), "testdata", "mod.ts"),
-    );
     const result = await emit("/src.ts", {
-      load(specifier) {
-        if (specifier !== "file:///src.ts") return Promise.resolve(undefined);
-        return Promise.resolve({ kind: "module", specifier, content });
+      async load(specifier) {
+        if (specifier !== "file:///src.ts") return undefined;
+        const content = await Deno.readTextFile(
+          join(Deno.cwd(), "testdata", "mod.ts"),
+        );
+        return { kind: "module", specifier, content };
       },
     });
 
