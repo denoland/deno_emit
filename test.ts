@@ -54,6 +54,23 @@ Deno.test({
 });
 
 Deno.test({
+  name: "bundle - source",
+  async fn() {
+    const result = await bundle(new URL("file:///src.ts"), {
+      async load(specifier) {
+        if (specifier !== "file:///src.ts") return undefined;
+        const content = await Deno.readTextFile(
+          join(Deno.cwd(), "testdata", "mod.ts"),
+        );
+        return { kind: "module", specifier, content };
+      },
+    });
+    console.log(result);
+    assert(result.code);
+  },
+});
+
+Deno.test({
   name: "transpile - remote",
   async fn() {
     const result = await emit(
@@ -104,6 +121,27 @@ Deno.test({
   name: "transpile - absolute",
   async fn() {
     const result = await emit(join(Deno.cwd(), "testdata", "mod.ts"));
+
+    console.log(result);
+    assertEquals(Object.keys(result).length, 1);
+    const code = result[Object.keys(result)[0]];
+    assert(code);
+    assertStringIncludes(code, "export default function hello()");
+  },
+});
+
+Deno.test({
+  name: "transpile - source",
+  async fn() {
+    const result = await emit(new URL("file:///src.ts"), {
+      async load(specifier) {
+        if (specifier !== "file:///src.ts") return undefined;
+        const content = await Deno.readTextFile(
+          join(Deno.cwd(), "testdata", "mod.ts"),
+        );
+        return { kind: "module", specifier, content };
+      },
+    });
 
     console.log(result);
     assertEquals(Object.keys(result).length, 1);

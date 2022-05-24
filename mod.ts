@@ -77,7 +77,10 @@ export interface EmitOptions {
   cacheSetting?: CacheSetting;
   //compilerOptions?: CompilerOptions;
   //imports: Record<string, string[]>;
-  // load?( specifier: string, isDynamic: boolean,): Promise<LoadResponse | undefined>;
+  /** Override the default loading mechanism with a custom loader. This can
+   * provide a way to use "in-memory" resources instead of fetching them
+   * remotely. */
+  load?: FetchCacher["load"];
   //type?: "module" | "classic";
 }
 
@@ -173,7 +176,11 @@ export function emit(
   options: EmitOptions = {},
 ): Promise<Record<string, string>> {
   root = root instanceof URL ? root : toFileUrl(resolve(root));
-  const { cacheSetting, cacheRoot, allowRemote } = options;
-  const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
-  return transpile(root.toString(), cache.load, undefined);
+  const { cacheSetting, cacheRoot, allowRemote, load } = options;
+  let emitLoad = load;
+  if (!emitLoad) {
+    const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
+    emitLoad = cache.load;
+  }
+  return transpile(root.toString(), emitLoad, undefined);
 }
