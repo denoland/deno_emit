@@ -8,8 +8,9 @@ mod transforms;
 
 use anyhow::bail;
 use anyhow::Result;
-use emit::BundleEmit;
 use std::collections::HashMap;
+
+pub use emit::BundleEmit;
 
 pub use ast::CompilerOptions;
 pub use deno_ast::ModuleSpecifier;
