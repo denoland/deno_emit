@@ -56,7 +56,7 @@ Deno.test({
 Deno.test({
   name: "bundle - source",
   async fn() {
-    const result = await bundle("/src.ts", {
+    const result = await bundle(new URL("file:///src.ts"), {
       async load(specifier) {
         if (specifier !== "file:///src.ts") return undefined;
         const content = await Deno.readTextFile(
@@ -133,7 +133,7 @@ Deno.test({
 Deno.test({
   name: "transpile - source",
   async fn() {
-    const result = await emit("/src.ts", {
+    const result = await emit(new URL("file:///src.ts"), {
       async load(specifier) {
         if (specifier !== "file:///src.ts") return undefined;
         const content = await Deno.readTextFile(
