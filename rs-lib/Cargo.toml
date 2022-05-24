@@ -1,0 +1,21 @@
+[package]
+name = "deno_emit"
+version = "0.1.0"
+edition = "2021"
+description = "module transpiling and emitting for deno"
+homepage = "https://deno.land/"
+repository = "https://github.com/denoland/deno_emit"
+authors = ["the Deno authors"]
+license = "MIT"
+
+[features]
+serialization = ["serde"]
+
+[dependencies]
+anyhow = "1.0.44"
+base64 = "0.13.0"
+deno_ast = { version = "0.14.0", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
+deno_graph = "0.26.0"
+futures = "0.3.17"
+parking_lot = { version = "0.11.2" }
+serde = { version = "1.0.130", features = ["derive", "rc"], optional = true }

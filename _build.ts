@@ -1,4 +1,4 @@
-// Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 import * as colors from "https://deno.land/std@0.140.0/fmt/colors.ts";
 import { emptyDir } from "https://deno.land/std@0.140.0/fs/empty_dir.ts";
@@ -37,10 +37,9 @@ if (!(await cargoFmtCmdStatus).success) {
 const cargoBuildCmd = [
   "cargo",
   "build",
+  "-p",
+  "deno_emit_wasm",
   "--release",
-  "--no-default-features",
-  "--features",
-  "wasm",
   "--target",
   "wasm32-unknown-unknown",
 ];
@@ -63,7 +62,7 @@ await emptyDir("./target/wasm32-bindgen-deno-js");
 
 const wasmBindGenCmd = [
   "wasm-bindgen",
-  "./target/wasm32-unknown-unknown/release/deno_emit.wasm",
+  "./target/wasm32-unknown-unknown/release/emit.wasm",
   "--target",
   "deno",
   "--weak-refs",
@@ -81,9 +80,9 @@ console.log(
   `${colors.bold(colors.green("Copying"))} lib wasm...`,
 );
 
-const denoGraphWasmDest = "./lib/deno_emit_bg.wasm";
+const denoGraphWasmDest = "./lib/emit_bg.wasm";
 await Deno.copyFile(
-  "./target/wasm32-bindgen-deno-js/deno_emit_bg.wasm",
+  "./target/wasm32-bindgen-deno-js/emit_bg.wasm",
   denoGraphWasmDest,
 );
 console.log(`  copy ${colors.yellow(denoGraphWasmDest)}`);
@@ -128,7 +127,7 @@ const wasm = wasmInstance.exports;
 `;
 
 const generatedJs = await Deno.readTextFile(
-  "./target/wasm32-bindgen-deno-js/deno_emit.js",
+  "./target/wasm32-bindgen-deno-js/emit.js",
 );
 const bindingJs = `${copyrightHeader}
 // @generated file from build script, do not edit
@@ -140,7 +139,7 @@ ${generatedJs.replace(/^let\swasmCode\s.+/ms, loader)}
 export const _wasm = wasm;
 export const _wasmInstance = wasmInstance;
 `;
-const libDenoGraphJs = "./lib/deno_emit.generated.js";
+const libDenoGraphJs = "./lib/emit.generated.js";
 console.log(`  write ${colors.yellow(libDenoGraphJs)}`);
 await Deno.writeTextFile(libDenoGraphJs, bindingJs);
 
@@ -148,7 +147,7 @@ const denoFmtCmd = [
   "deno",
   "fmt",
   "--quiet",
-  "./lib/deno_emit.generated.js",
+  "./lib/emit.generated.js",
 ];
 console.log(`  ${colors.bold(colors.gray(denoFmtCmd.join(" ")))}`);
 const denoFmtCmdStatus = Deno.run({ cmd: denoFmtCmd }).status();
