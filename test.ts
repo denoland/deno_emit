@@ -11,7 +11,7 @@ Deno.test({
   name: "bundle - remote",
   async fn() {
     const result = await bundle(
-      "https://deno.land/std@0.140.0/examples/chat/server.ts",
+      new URL("https://deno.land/std@0.140.0/examples/chat/server.ts"),
     );
     console.log(result);
     assert(result.code);
@@ -57,7 +57,9 @@ Deno.test({
   name: "transpile - remote",
   async fn() {
     const result = await emit(
-      "https://deno.land/std@0.140.0/examples/chat/server.ts",
+      new URL(
+        "https://deno.land/std@0.140.0/examples/chat/server.ts",
+      ),
     );
 
     console.log(result);
