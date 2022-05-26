@@ -15,8 +15,9 @@ name = "emit"
 [dependencies]
 anyhow = "1.0.44"
 base64 = "0.13.0"
-deno_emit = { path = "../rs-lib", features = ["serialization"] }
+deno_emit = { path = "../rs-lib" }
 js-sys = { version = "0.3.55" }
+serde = { version = "1.0.130", features = ["derive", "rc"] }
 wasm-bindgen = { version = "0.2.80", features = ["serde-serialize"] }
 wasm-bindgen-futures = { version = "0.4.28" }
 

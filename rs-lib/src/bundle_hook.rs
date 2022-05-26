@@ -14,7 +14,7 @@ impl Hook for BundleHook {
     &self,
     span: Span,
     module_record: &ModuleRecord,
-  ) -> Result<Vec<deno_ast::swc::ast::KeyValueProp>, anyhow::Error> {
+  ) -> Result<Vec<deno_ast::swc::ast::KeyValueProp>> {
     Ok(vec![
       ast::KeyValueProp {
         key: ast::PropName::Ident(ast::Ident::new("url".into(), span)),
