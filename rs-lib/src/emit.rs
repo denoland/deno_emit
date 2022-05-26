@@ -29,7 +29,6 @@ const IGNORE_DIRECTIVES: &[&str] = &[
   "// deno-fmt-ignore-file",
   "// deno-lint-ignore-file",
   "// This code was bundled using `deno bundle` and it's not recommended to edit it manually",
-  ""
 ];
 
 pub enum BundleType {
@@ -196,7 +195,7 @@ pub fn bundle_graph(
       if options.emit_ignore_directives {
         // write leading comments in bundled file
         use swc::codegen::text_writer::WriteJs;
-        let cmt = IGNORE_DIRECTIVES.join("\n") + "\n";
+        let cmt = IGNORE_DIRECTIVES.join("\n") + "\n\n";
         wr.write_comment(&cmt)?;
       }
 
