@@ -1,12 +1,85 @@
 // Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 use anyhow::anyhow;
-use deno_emit::CompilerOptions;
+use deno_emit::BundleOptions;
+use deno_emit::BundleType;
+use deno_emit::EmitOptions;
+use deno_emit::ImportsNotUsedAsValues;
 use deno_emit::LoadFuture;
 use deno_emit::Loader;
 use deno_emit::ModuleSpecifier;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
+
+/// This is a deserializable structure of the `"compilerOptions"` section of a
+/// TypeScript or Deno configuration file which can effect how the emitting is
+/// handled, all other options don't impact the output.
+#[derive(serde::Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+#[derive(Debug)]
+pub struct CompilerOptions {
+  pub check_js: bool,
+  pub emit_decorator_metadata: bool,
+  pub imports_not_used_as_values: String,
+  pub inline_source_map: bool,
+  pub inline_sources: bool,
+  pub jsx: String,
+  pub jsx_factory: String,
+  pub jsx_fragment_factory: String,
+  pub source_map: bool,
+}
+
+impl Default for CompilerOptions {
+  fn default() -> Self {
+    Self {
+      check_js: false,
+      emit_decorator_metadata: false,
+      imports_not_used_as_values: "remove".to_string(),
+      inline_source_map: true,
+      inline_sources: true,
+      jsx: "react".to_string(),
+      jsx_factory: "React.createElement".to_string(),
+      jsx_fragment_factory: "React.Fragment".to_string(),
+      source_map: false,
+    }
+  }
+}
+
+impl From<CompilerOptions> for EmitOptions {
+  fn from(options: CompilerOptions) -> Self {
+    let imports_not_used_as_values =
+      match options.imports_not_used_as_values.as_str() {
+        "preserve" => ImportsNotUsedAsValues::Preserve,
+        "error" => ImportsNotUsedAsValues::Error,
+        _ => ImportsNotUsedAsValues::Remove,
+      };
+
+    Self {
+      emit_metadata: options.emit_decorator_metadata,
+      imports_not_used_as_values,
+      inline_source_map: options.inline_source_map,
+      inline_sources: options.inline_sources,
+      jsx_factory: options.jsx_factory,
+      jsx_fragment_factory: options.jsx_fragment_factory,
+      transform_jsx: options.jsx == "react",
+      var_decl_imports: false,
+      source_map: options.source_map,
+      jsx_automatic: false,
+      jsx_development: false,
+      jsx_import_source: None,
+    }
+  }
+}
+
+#[derive(serde::Serialize, Debug)]
+pub struct SerializableBundleEmit {
+  pub code: String,
+  #[cfg_attr(
+    feature = "serialization",
+    serde(rename = "map", skip_serializing_if = "Option::is_none")
+  )]
+  pub maybe_map: Option<String>,
+}
 
 struct JsLoader {
   load: js_sys::Function,
@@ -66,19 +139,50 @@ pub async fn bundle(
   let root = ModuleSpecifier::parse(&root)
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
   let mut loader = JsLoader::new(load);
+  let emit_options: EmitOptions = maybe_compiler_options
+    .map(|co| co.into())
+    .unwrap_or_default();
+  let bundle_type = match maybe_bundle_type.as_deref() {
+    Some("module") | None => BundleType::Module,
+    Some("classic") => BundleType::Classic,
+    Some(value) => {
+      return Err(JsValue::from(js_sys::Error::new(&format!(
+        "Unsupported bundle type \"{}\"",
+        value
+      ))))
+    }
+  };
+
+  let maybe_imports = if let Some(imports_map) = maybe_imports_map {
+    let mut imports = Vec::new();
+    for (referrer_str, specifier_vec) in imports_map.into_iter() {
+      let referrer = ModuleSpecifier::parse(&referrer_str)
+        .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+      imports.push((referrer, specifier_vec));
+    }
+    Some(imports)
+  } else {
+    None
+  };
 
   let result = deno_emit::bundle(
     root,
     &mut loader,
-    maybe_bundle_type,
-    maybe_imports_map,
-    maybe_compiler_options,
+    maybe_imports,
+    BundleOptions {
+      bundle_type,
+      emit_options,
+      emit_ignore_directives: false,
+    },
   )
   .await
   .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
 
-  JsValue::from_serde(&result)
-    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))
+  JsValue::from_serde(&SerializableBundleEmit {
+    code: result.code,
+    maybe_map: result.maybe_map,
+  })
+  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))
 }
 
 #[wasm_bindgen]

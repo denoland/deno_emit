@@ -1,18 +1,19 @@
 // Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
-mod ast;
 mod bundle_hook;
 mod emit;
 mod text;
-mod transforms;
 
-use anyhow::bail;
 use anyhow::Result;
 use std::collections::HashMap;
 
+pub use emit::bundle_graph;
 pub use emit::BundleEmit;
+pub use emit::BundleOptions;
+pub use emit::BundleType;
 
-pub use ast::CompilerOptions;
+pub use deno_ast::EmitOptions;
+pub use deno_ast::ImportsNotUsedAsValues;
 pub use deno_ast::ModuleSpecifier;
 pub use deno_graph::source::LoadFuture;
 pub use deno_graph::source::Loader;
@@ -20,23 +21,13 @@ pub use deno_graph::source::Loader;
 pub async fn bundle(
   root: ModuleSpecifier,
   loader: &mut dyn Loader,
-  maybe_bundle_type: Option<String>,
-  maybe_imports_map: Option<HashMap<String, Vec<String>>>,
-  maybe_compiler_options: Option<CompilerOptions>,
+  maybe_imports_map: Option<Vec<(ModuleSpecifier, Vec<String>)>>,
+  bundle_options: BundleOptions,
 ) -> Result<BundleEmit> {
-  let mut maybe_imports = None;
-  if let Some(imports_map) = maybe_imports_map {
-    let mut imports = Vec::new();
-    for (referrer_str, specifier_vec) in imports_map.into_iter() {
-      let referrer = ModuleSpecifier::parse(&referrer_str)?;
-      imports.push((referrer, specifier_vec));
-    }
-    maybe_imports = Some(imports);
-  }
   let graph = deno_graph::create_graph(
     vec![(root, deno_graph::ModuleKind::Esm)],
     false,
-    maybe_imports,
+    maybe_imports_map,
     loader,
     None,
     None,
@@ -44,20 +35,8 @@ pub async fn bundle(
     None,
   )
   .await;
-  let bundle_type = match maybe_bundle_type.as_deref() {
-    Some("module") | None => emit::BundleType::Module,
-    Some("classic") => emit::BundleType::Classic,
-    Some(value) => {
-      bail!("Unsupported bundle type \"{}\"", value);
-    }
-  };
-  emit::bundle(
-    &graph,
-    emit::BundleOptions {
-      bundle_type,
-      maybe_compiler_options,
-    },
-  )
+
+  bundle_graph(&graph, bundle_options)
 }
 
 pub async fn transpile(
