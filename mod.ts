@@ -32,7 +32,7 @@
  * @module
  */
 
-import { bundle as jsBundle, transpile } from "./lib/emit.generated.js";
+import { instantiate } from "./lib/emit.generated.js";
 import {
   type CacheSetting,
   createCache,
@@ -136,7 +136,7 @@ export interface CompilerOptions {
  * @returns a promise which resolves with the emitted bundle (and optional
  *          source map)
  */
-export function bundle(
+export async function bundle(
   root: string | URL,
   options: BundleOptions = {},
 ): Promise<BundleEmit> {
@@ -153,6 +153,7 @@ export function bundle(
     bundleLoad = cache.load;
   }
   root = root instanceof URL ? root : toFileUrl(resolve(root));
+  const { bundle: jsBundle } = await instantiate();
   return jsBundle(
     root.toString(),
     bundleLoad,
@@ -171,7 +172,7 @@ export function bundle(
  *          where the key is the emitted files name and the value is the
  *          source for the file.
  */
-export function emit(
+export async function emit(
   root: string | URL,
   options: EmitOptions = {},
 ): Promise<Record<string, string>> {
@@ -182,5 +183,6 @@ export function emit(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     emitLoad = cache.load;
   }
+  const { transpile } = await instantiate();
   return transpile(root.toString(), emitLoad, undefined);
 }
