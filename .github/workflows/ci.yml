@@ -21,39 +21,43 @@ jobs:
       RUSTFLAGS: -D warnings
 
     steps:
-      - name: ☑️ clone repository
+      - name: Clone repository
         uses: actions/checkout@v3
 
-      - name: ➡️  install rust
+      - name: Install rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: 🗃️  cache
+      - name: Cache
         uses: Swatinem/rust-cache@v1
 
-      - name: ➡️  install up Deno
+      - name: Install up Deno
         uses: denoland/setup-deno@v1.0.0
 
-      - name: 💄  format
+      - name: Format
         if: contains(matrix.os, 'ubuntu')
         run: |
           cargo fmt -- --check
           deno fmt --check
 
-      - name: 💄  lint
+      - name: Lint
         if: contains(matrix.os, 'ubuntu')
         run: |
           cargo clippy --locked --release --all-features --all-targets -- -D clippy::all
           deno lint
 
-      - name: 🏗️  build
+      - name: Build
         run: cargo build --locked --release --all-features --all-targets
 
-      - name: 🧪  test
+      - name: Test
         run: |
           cargo test --locked --release --all-features --all-targets
           deno task test
 
-      - name: 📦  publish
+      - name: Ensure Wasm up to date
+        if: contains(matrix.os, 'ubuntu')
+        run: deno task build --check
+
+      - name: Publish
         if: |
           contains(matrix.os, 'ubuntu') &&
           github.repository == 'denoland/deno_emit' &&
