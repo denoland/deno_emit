@@ -63,8 +63,7 @@ pub async fn transpile(
 
   for module in graph.modules() {
     if let Some(parsed_source) = &module.maybe_parsed_source {
-      let emit_options = &emitopts;
-      let transpiled_source = parsed_source.transpile(&emit_options)?;
+      let transpiled_source = parsed_source.transpile(&emitopts)?;
       map.insert(module.specifier.to_string(), transpiled_source.text);
       if let Some(source_map) = &transpiled_source.source_map {
         map.insert(

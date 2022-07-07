@@ -77,7 +77,6 @@ export interface EmitOptions {
   cacheRoot?: string;
   /** The setting to use when loading sources from the Deno cache. */
   cacheSetting?: CacheSetting;
-  compilerOptions?: CompilerOptions;
   //imports: Record<string, string[]>;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
@@ -85,7 +84,10 @@ export interface EmitOptions {
   load?: FetchCacher["load"];
   //type?: "module" | "classic";
   /** Minify the compiled code, default is false. */
-  minify?: boolean;
+  source_map?: boolean;
+  inline_sources?: boolean;
+  inline_source_map?: boolean;
+  emit_metadata?: boolean;
 }
 
 export interface CompilerOptions {
