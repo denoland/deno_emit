@@ -54,12 +54,13 @@ pub struct BundleOptions {
   pub bundle_type: BundleType,
   pub emit_options: EmitOptions,
   pub emit_ignore_directives: bool,
+  pub minify: bool,
 }
 
 #[derive(Debug)]
 pub struct BundleEmit {
   pub code: String,
-  pub maybe_map: Option<String>,
+  pub source_map: Option<String>,
 }
 
 struct BundleLoader<'a> {
@@ -181,7 +182,7 @@ pub fn bundle_graph(
     let mut srcmap = Vec::new();
     {
       let cfg = swc::codegen::Config {
-        minify: false,
+        minify: options.minify,
         ascii_only: false,
         target: deno_ast::ES_VERSION,
       };
@@ -211,7 +212,7 @@ pub fn bundle_graph(
     }
     let mut code =
       String::from_utf8(buf).context("Emitted code is an invalid string.")?;
-    let mut maybe_map: Option<String> = None;
+    let mut source_map: Option<String> = None;
     {
       let mut buf = Vec::new();
       cm.build_source_map_with_config(&mut srcmap, None, source_map_config)
@@ -223,11 +224,13 @@ pub fn bundle_graph(
         );
         code.push_str(&encoded_map);
       } else if options.emit_options.source_map {
-        maybe_map = Some(String::from_utf8(buf)?);
+        source_map = Some(String::from_utf8(buf)?);
+      } else {
+        source_map = None;
       }
     }
 
-    Ok(BundleEmit { code, maybe_map })
+    Ok(BundleEmit { code, source_map })
   })
 }
 

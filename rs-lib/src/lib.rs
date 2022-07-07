@@ -35,13 +35,13 @@ pub async fn bundle(
     None,
   )
   .await;
-
   bundle_graph(&graph, bundle_options)
 }
 
 pub async fn transpile(
   root: ModuleSpecifier,
   loader: &mut dyn Loader,
+  emitopts: EmitOptions,
 ) -> Result<HashMap<String, String>> {
   let maybe_imports = None;
 
@@ -63,10 +63,8 @@ pub async fn transpile(
 
   for module in graph.modules() {
     if let Some(parsed_source) = &module.maybe_parsed_source {
-      // TODO: add emit options
-      let emit_options = Default::default();
+      let emit_options = &emitopts;
       let transpiled_source = parsed_source.transpile(&emit_options)?;
-
       map.insert(module.specifier.to_string(), transpiled_source.text);
       if let Some(source_map) = &transpiled_source.source_map {
         map.insert(

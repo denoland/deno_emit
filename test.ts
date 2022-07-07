@@ -3,8 +3,8 @@ import {
   assert,
   assertEquals,
   assertStringIncludes,
-} from "https://deno.land/std@0.140.0/testing/asserts.ts";
-import { join } from "https://deno.land/std@0.140.0/path/mod.ts";
+} from "https://deno.land/std@0.146.0/testing/asserts.ts";
+import { join } from "https://deno.land/std@0.146.0/path/mod.ts";
 import { bundle, emit } from "./mod.ts";
 
 Deno.test({
@@ -23,7 +23,7 @@ Deno.test({
   async fn() {
     const result = await bundle(
       new URL(
-        "https://deno.land/std@0.140.0/examples/chat/server.ts",
+        "https://deno.land/std@0.146.0/examples/chat/server.ts",
       ),
     );
     console.log(result);

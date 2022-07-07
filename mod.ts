@@ -45,7 +45,7 @@ export interface BundleEmit {
   /** The bundles code as a single JavaScript module. */
   code: string;
   /** An optional source map. */
-  map?: string;
+  source_map?: string;
 }
 
 export interface BundleOptions {
@@ -65,6 +65,8 @@ export interface BundleOptions {
   /** Should the emitted bundle be an ES module or an IIFE script. The default
    * is `"module"` to output a ESM module. */
   type?: "module" | "classic";
+  /** Minify the compiled code, default is false. */
+  minify?: boolean;
 }
 
 /** Options which can be set when using the {@linkcode emit} function. */
@@ -75,13 +77,15 @@ export interface EmitOptions {
   cacheRoot?: string;
   /** The setting to use when loading sources from the Deno cache. */
   cacheSetting?: CacheSetting;
-  //compilerOptions?: CompilerOptions;
+  compilerOptions?: CompilerOptions;
   //imports: Record<string, string[]>;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
   load?: FetchCacher["load"];
   //type?: "module" | "classic";
+  /** Minify the compiled code, default is false. */
+  minify?: boolean;
 }
 
 export interface CompilerOptions {
@@ -152,14 +156,18 @@ export async function bundle(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     bundleLoad = cache.load;
   }
+  if (!options.minify) {
+    options.minify = false;
+  }
   root = root instanceof URL ? root : toFileUrl(resolve(root));
   const { bundle: jsBundle } = await instantiate();
   return jsBundle(
     root.toString(),
     bundleLoad,
-    JSON.stringify(imports),
-    undefined,
-    undefined,
+    options.type,
+    imports,
+    options.compilerOptions,
+    options.minify,
   );
 }
 
@@ -184,5 +192,5 @@ export async function emit(
     emitLoad = cache.load;
   }
   const { transpile } = await instantiate();
-  return transpile(root.toString(), emitLoad, undefined);
+  return transpile(root.toString(), emitLoad, options);
 }

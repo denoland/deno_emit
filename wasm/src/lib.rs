@@ -78,7 +78,7 @@ pub struct SerializableBundleEmit {
     feature = "serialization",
     serde(rename = "map", skip_serializing_if = "Option::is_none")
   )]
-  pub maybe_map: Option<String>,
+  pub source_map: Option<String>,
 }
 
 struct JsLoader {
@@ -128,6 +128,7 @@ pub async fn bundle(
   maybe_bundle_type: Option<String>,
   maybe_imports: JsValue,
   maybe_compiler_options: JsValue,
+  minify: bool,
 ) -> Result<JsValue, JsValue> {
   // todo(dsherret): eliminate all the duplicate `.map_err`s
   let maybe_imports_map: Option<HashMap<String, Vec<String>>> = maybe_imports
@@ -173,6 +174,7 @@ pub async fn bundle(
       bundle_type,
       emit_options,
       emit_ignore_directives: false,
+      minify,
     },
   )
   .await
@@ -180,7 +182,7 @@ pub async fn bundle(
 
   JsValue::from_serde(&SerializableBundleEmit {
     code: result.code,
-    maybe_map: result.maybe_map,
+    source_map: result.source_map,
   })
   .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))
 }
@@ -189,13 +191,18 @@ pub async fn bundle(
 pub async fn transpile(
   root: String,
   load: js_sys::Function,
-  _options: JsValue,
+  options: JsValue,
 ) -> Result<JsValue, JsValue> {
   let root = ModuleSpecifier::parse(&root)
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
   let mut loader = JsLoader::new(load);
-
-  let map = deno_emit::transpile(root, &mut loader)
+  let maybe_compiler_options: Option<CompilerOptions> = options
+    .into_serde()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  let emit_options: EmitOptions = maybe_compiler_options
+    .map(|co| co.into())
+    .unwrap_or_default();
+  let map = deno_emit::transpile(root, &mut loader, emit_options)
     .await
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
 
