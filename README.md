@@ -41,9 +41,9 @@ JavaScript:
 import { emit } from "https://deno.land/x/emit/mod.ts";
 
 const url = new URL("./testdata/mod.ts", import.meta.url);
-const result = await emit(url.href);
+const result = await emit(url);
 
-const { code } = result;
+const code = result[url.href];
 console.log(code.includes("export default function hello()"));
 ```
 
@@ -56,7 +56,7 @@ command line. An example:
 ```ts
 import { bundle } from "https://deno.land/x/emit/mod.ts";
 const result = await bundle(
-  "https://deno.land/std@0.140.0/examples/chat/server.ts",
+  new URL("https://deno.land/std@0.140.0/examples/chat/server.ts"),
 );
 
 const { code } = result;
