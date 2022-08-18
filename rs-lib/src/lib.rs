@@ -45,6 +45,7 @@ pub async fn transpile(
 ) -> Result<HashMap<String, String>> {
   let maybe_imports = None;
 
+  let analyzer = deno_graph::CapturingParsedSourceAnalyzer::default();
   let graph = deno_graph::create_graph(
     vec![(root, deno_graph::ModuleKind::Esm)],
     false,
@@ -52,7 +53,7 @@ pub async fn transpile(
     loader,
     None,
     None,
-    None,
+    Some(&analyzer),
     None,
   )
   .await;
@@ -62,7 +63,7 @@ pub async fn transpile(
   let mut map = HashMap::new();
 
   for module in graph.modules() {
-    if let Some(parsed_source) = &module.maybe_parsed_source {
+    if let Ok(parsed_source) = analyzer.parsed_source(&module.specifier) {
       // TODO: add emit options
       let emit_options = Default::default();
       let transpiled_source = parsed_source.transpile(&emit_options)?;
