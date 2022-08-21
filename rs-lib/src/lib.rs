@@ -5,6 +5,8 @@ mod emit;
 mod text;
 
 use anyhow::Result;
+use deno_graph::CapturingModuleAnalyzer;
+use deno_graph::ParsedSourceStore;
 use std::collections::HashMap;
 
 pub use emit::bundle_graph;
@@ -45,6 +47,7 @@ pub async fn transpile(
 ) -> Result<HashMap<String, String>> {
   let maybe_imports = None;
 
+  let analyzer = CapturingModuleAnalyzer::default();
   let graph = deno_graph::create_graph(
     vec![(root, deno_graph::ModuleKind::Esm)],
     false,
@@ -52,7 +55,7 @@ pub async fn transpile(
     loader,
     None,
     None,
-    None,
+    Some(&analyzer),
     None,
   )
   .await;
@@ -62,7 +65,7 @@ pub async fn transpile(
   let mut map = HashMap::new();
 
   for module in graph.modules() {
-    if let Some(parsed_source) = &module.maybe_parsed_source {
+    if let Some(parsed_source) = analyzer.get_parsed_source(&module.specifier) {
       // TODO: add emit options
       let emit_options = Default::default();
       let transpiled_source = parsed_source.transpile(&emit_options)?;
