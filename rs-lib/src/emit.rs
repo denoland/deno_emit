@@ -184,6 +184,7 @@ pub fn bundle_graph(
         minify: false,
         ascii_only: false,
         target: deno_ast::ES_VERSION,
+        omit_last_semi: false,
       };
       let mut wr = Box::new(swc::codegen::text_writer::JsWriter::new(
         cm.clone(),
