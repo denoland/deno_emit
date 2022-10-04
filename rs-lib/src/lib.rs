@@ -6,6 +6,7 @@ mod text;
 
 use anyhow::Result;
 use deno_graph::CapturingModuleAnalyzer;
+use deno_graph::GraphOptions;
 use deno_graph::ParsedSourceStore;
 use std::collections::HashMap;
 
@@ -28,13 +29,11 @@ pub async fn bundle(
 ) -> Result<BundleEmit> {
   let graph = deno_graph::create_graph(
     vec![(root, deno_graph::ModuleKind::Esm)],
-    false,
-    maybe_imports_map,
     loader,
-    None,
-    None,
-    None,
-    None,
+    GraphOptions {
+      imports: maybe_imports_map,
+      ..Default::default()
+    }
   )
   .await;
 
@@ -45,18 +44,14 @@ pub async fn transpile(
   root: ModuleSpecifier,
   loader: &mut dyn Loader,
 ) -> Result<HashMap<String, String>> {
-  let maybe_imports = None;
-
   let analyzer = CapturingModuleAnalyzer::default();
   let graph = deno_graph::create_graph(
     vec![(root, deno_graph::ModuleKind::Esm)],
-    false,
-    maybe_imports,
     loader,
-    None,
-    None,
-    Some(&analyzer),
-    None,
+    GraphOptions {
+      module_analyzer: Some(&analyzer),
+      ..Default::default()
+    }
   )
   .await;
 
