@@ -33,7 +33,7 @@ pub async fn bundle(
     GraphOptions {
       imports: maybe_imports_map,
       ..Default::default()
-    }
+    },
   )
   .await;
 
@@ -51,7 +51,7 @@ pub async fn transpile(
     GraphOptions {
       module_analyzer: Some(&analyzer),
       ..Default::default()
-    }
+    },
   )
   .await;
 
