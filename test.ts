@@ -74,13 +74,17 @@ Deno.test({
   name: "bundle - json escapes",
   async fn() {
     const result = await bundle("./testdata/escape.ts");
-    const {code} = result;
+    const { code } = result;
     assert(code);
     // This is done on purpose, as `String.raw` still performs a string interpolation,
     // and we want a literal value ${jsInterpolation" as is, without any modifications.
     // We should not need to escape `$` nor `{` as they are both JSON-safe characters.
     const jsInterpolation = "${jsInterpolation}";
-    assertStringIncludes(code, String.raw`const __default = JSON.parse("{\"key\": \"a value with newline\\n, \\\"double quotes\\\", 'single quotes', and ${jsInterpolation}\"}");`);
+    assertStringIncludes(
+      code,
+      String
+        .raw`const __default = JSON.parse("{\n  \"key\": \"a value with newline\\n, \\\"double quotes\\\", 'single quotes', and ${jsInterpolation}\"\n}");`,
+    );
   },
 });
 
