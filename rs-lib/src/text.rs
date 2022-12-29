@@ -38,24 +38,36 @@ mod test {
   #[test]
   fn transform_json_source_simple() {
     let text = r#"{"foo": "bar"}"#;
-    assert_eq!(transform_json_source(text), r#"export default JSON.parse("{\"foo\": \"bar\"}");"#);
+    assert_eq!(
+      transform_json_source(text),
+      r#"export default JSON.parse("{\"foo\": \"bar\"}");"#
+    );
   }
 
   #[test]
   fn transform_json_source_escape_newline() {
     let text = r#"{"foo": "bar\nbaz"}"#;
-    assert_eq!(transform_json_source(text), r#"export default JSON.parse("{\"foo\": \"bar\\nbaz\"}");"#);
+    assert_eq!(
+      transform_json_source(text),
+      r#"export default JSON.parse("{\"foo\": \"bar\\nbaz\"}");"#
+    );
   }
 
   #[test]
   fn transform_json_source_escape_quotes() {
     let text = r#"{"foo": "bar \"baz\" 'qux' `quaz`"}"#;
-    assert_eq!(transform_json_source(text), r#"export default JSON.parse("{\"foo\": \"bar \\\"baz\\\" 'qux' `quaz`\"}");"#);
+    assert_eq!(
+      transform_json_source(text),
+      r#"export default JSON.parse("{\"foo\": \"bar \\\"baz\\\" 'qux' `quaz`\"}");"#
+    );
   }
 
   #[test]
   fn transform_json_source_not_escape_string_interpolation() {
     let text = r#"{"foo": "bar ${baz}"}"#;
-    assert_eq!(transform_json_source(text), r#"export default JSON.parse("{\"foo\": \"bar ${baz}\"}");"#);
+    assert_eq!(
+      transform_json_source(text),
+      r#"export default JSON.parse("{\"foo\": \"bar ${baz}\"}");"#
+    );
   }
 }
