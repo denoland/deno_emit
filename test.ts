@@ -71,6 +71,27 @@ Deno.test({
 });
 
 Deno.test({
+  name: "bundle - json escapes",
+  async fn() {
+    const result = await bundle("./testdata/escape.ts");
+    const { code } = result;
+    assert(code);
+    const EOL = Deno?.build?.os === "windows"
+      ? String.raw`\r\n`
+      : String.raw`\n`;
+    // This is done on purpose, as `String.raw` still performs a string interpolation,
+    // and we want a literal value ${jsInterpolation" as is, without any modifications.
+    // We should not need to escape `$` nor `{` as they are both JSON-safe characters.
+    const jsInterpolation = "${jsInterpolation}";
+    assertStringIncludes(
+      code,
+      String
+        .raw`const __default = JSON.parse("{${EOL}  \"key\": \"a value with newline\\n, \\\"double quotes\\\", 'single quotes', and ${jsInterpolation}\"${EOL}}");`,
+    );
+  },
+});
+
+Deno.test({
   name: "transpile - remote",
   async fn() {
     const result = await emit(

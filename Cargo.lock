@@ -253,6 +253,7 @@ dependencies = [
  "base64 0.13.1",
  "deno_ast",
  "deno_graph",
+ "escape8259",
  "futures",
  "parking_lot 0.11.2",
 ]
@@ -332,6 +333,15 @@ dependencies = [
  "proc-macro2",
  "swc_macros_common",
  "syn",
+]
+
+[[package]]
+name = "escape8259"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba4f4911e3666fcd7826997b4745c8224295a6f3072f1418c3067b97a67557ee"
+dependencies = [
+ "rustversion",
 ]
 
 [[package]]
@@ -1015,6 +1025,12 @@ checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
  "semver",
 ]
+
+[[package]]
+name = "rustversion"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5583e89e108996506031660fe09baa5011b9dd0341b89029313006d1fb508d70"
 
 [[package]]
 name = "ryu"

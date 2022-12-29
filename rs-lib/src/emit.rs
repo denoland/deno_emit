@@ -24,6 +24,7 @@ use std::rc::Rc;
 
 use crate::bundle_hook::BundleHook;
 use crate::text::strip_bom;
+use crate::text::transform_json_source;
 
 const IGNORE_DIRECTIVES: &[&str] = &[
   "// deno-fmt-ignore-file",
@@ -242,10 +243,7 @@ fn transpile_module(
 ) -> Result<(Rc<swc::common::SourceFile>, swc::ast::Module)> {
   let source = strip_bom(source);
   let source = if media_type == MediaType::Json {
-    format!(
-      "export default JSON.parse(`{}`);",
-      source.replace("${", "\\${").replace('`', "\\`")
-    )
+    transform_json_source(source)
   } else {
     source.to_string()
   };
