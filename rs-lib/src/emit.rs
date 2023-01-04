@@ -8,17 +8,13 @@ use deno_ast::swc;
 use deno_ast::swc::common::comments::SingleThreadedComments;
 use deno_ast::swc::common::FileName;
 use deno_ast::swc::common::Mark;
-use deno_ast::swc::common::SourceMap;
-use deno_ast::swc::common::Spanned;
-use deno_ast::swc::parser::error::Error as SwcError;
 use deno_ast::swc::parser::lexer::Lexer;
 use deno_ast::swc::parser::StringInput;
 use deno_ast::Diagnostic;
 use deno_ast::EmitOptions;
-use deno_ast::LineAndColumnDisplay;
 use deno_ast::MediaType;
 use deno_ast::ModuleSpecifier;
-use deno_ast::SourceRangedForSpanned;
+use deno_ast::SourceTextInfo;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -216,7 +212,7 @@ pub fn bundle_graph(
     let mut maybe_map: Option<String> = None;
     {
       let mut buf = Vec::new();
-      cm.build_source_map_with_config(&mut srcmap, None, source_map_config)
+      cm.build_source_map_with_config(&srcmap, None, source_map_config)
         .to_writer(&mut buf)?;
       if options.emit_options.inline_source_map {
         let encoded_map = format!(
@@ -258,14 +254,27 @@ fn transpile_module(
   };
   let lexer = Lexer::new(syntax, deno_ast::ES_VERSION, input, Some(&comments));
   let mut parser = swc::parser::Parser::new_from(lexer);
-  let module = parser
-    .parse_module()
-    .map_err(|e| swc_err_to_diagnostic(&cm, specifier, e))?;
-  let diagnostics = parser
-    .take_errors()
-    .into_iter()
-    .map(|e| swc_err_to_diagnostic(&cm, specifier, e))
-    .collect::<Vec<_>>();
+  let module = parser.parse_module().map_err(|e| {
+    Diagnostic::from_swc_error(
+      e,
+      specifier.as_str(),
+      SourceTextInfo::from_string(source_file.src.to_string()),
+    )
+  })?;
+  let diagnostics = {
+    let diagnostics = parser.take_errors();
+    if diagnostics.is_empty() {
+      Vec::new()
+    } else {
+      let info = SourceTextInfo::from_string(source_file.src.to_string());
+      diagnostics
+        .into_iter()
+        .map(|e| {
+          Diagnostic::from_swc_error(e, specifier.as_str(), info.clone())
+        })
+        .collect::<Vec<_>>()
+    }
+  };
 
   let top_level_mark = Mark::fresh(Mark::root());
   let program = deno_ast::fold_program(
@@ -282,21 +291,4 @@ fn transpile_module(
   };
 
   Ok((source_file, module))
-}
-
-fn swc_err_to_diagnostic(
-  source_map: &SourceMap,
-  specifier: &ModuleSpecifier,
-  err: SwcError,
-) -> Diagnostic {
-  let location = source_map.lookup_char_pos(err.span().lo);
-  Diagnostic {
-    specifier: specifier.to_string(),
-    range: err.range(),
-    display_position: LineAndColumnDisplay {
-      line_number: location.line,
-      column_number: location.col_display + 1,
-    },
-    kind: err.into_kind(),
-  }
 }
