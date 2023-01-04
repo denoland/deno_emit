@@ -3,7 +3,6 @@
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
-use deno_ast::SourceTextInfo;
 use deno_ast::get_syntax;
 use deno_ast::swc;
 use deno_ast::swc::common::comments::SingleThreadedComments;
@@ -15,6 +14,7 @@ use deno_ast::Diagnostic;
 use deno_ast::EmitOptions;
 use deno_ast::MediaType;
 use deno_ast::ModuleSpecifier;
+use deno_ast::SourceTextInfo;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -212,7 +212,7 @@ pub fn bundle_graph(
     let mut maybe_map: Option<String> = None;
     {
       let mut buf = Vec::new();
-      cm.build_source_map_with_config(&mut srcmap, None, source_map_config)
+      cm.build_source_map_with_config(&srcmap, None, source_map_config)
         .to_writer(&mut buf)?;
       if options.emit_options.inline_source_map {
         let encoded_map = format!(
@@ -254,17 +254,24 @@ fn transpile_module(
   };
   let lexer = Lexer::new(syntax, deno_ast::ES_VERSION, input, Some(&comments));
   let mut parser = swc::parser::Parser::new_from(lexer);
-  let module = parser
-    .parse_module()
-    .map_err(|e| Diagnostic::from_swc_error(e, specifier.as_str(), SourceTextInfo::from_string(source_file.src.to_string())))?;
+  let module = parser.parse_module().map_err(|e| {
+    Diagnostic::from_swc_error(
+      e,
+      specifier.as_str(),
+      SourceTextInfo::from_string(source_file.src.to_string()),
+    )
+  })?;
   let diagnostics = {
     let diagnostics = parser.take_errors();
     if diagnostics.is_empty() {
       Vec::new()
     } else {
       let info = SourceTextInfo::from_string(source_file.src.to_string());
-      diagnostics.into_iter()
-        .map(|e| Diagnostic::from_swc_error(e, specifier.as_str(), info.clone()))
+      diagnostics
+        .into_iter()
+        .map(|e| {
+          Diagnostic::from_swc_error(e, specifier.as_str(), info.clone())
+        })
         .collect::<Vec<_>>()
     }
   };
