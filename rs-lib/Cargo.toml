@@ -1,6 +1,6 @@
 [package]
 name = "deno_emit"
-version = "0.12.0"
+version = "0.13.0"
 edition = "2021"
 description = "module transpiling and emitting for deno"
 homepage = "https://deno.land/"
