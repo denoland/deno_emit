@@ -321,7 +321,7 @@ mod test {
   use crate::bundle_graph;
   use crate::BundleOptions;
 
-  pub(crate) async fn setup<S: AsRef<str> + Copy>(
+  async fn setup<S: AsRef<str> + Copy>(
     root: S,
     sources: Vec<(S, S)>,
   ) -> (ModuleGraph, CapturingModuleAnalyzer, ModuleSpecifier) {
