@@ -207,8 +207,12 @@ pub fn bundle_graph(
         .emit_module(&output[0].module)
         .context("Unable to emit during bundling.")?;
     }
-    let mut code =
-      String::from_utf8(buf).context("Emitted code is an invalid string.")?;
+    let mut code = shebang_file(graph)
+      .map(|shebang| format!("{}\n", shebang))
+      .unwrap_or_default();
+    code.push_str(
+      &String::from_utf8(buf).context("Emitted code is an invalid string.")?,
+    );
     let mut maybe_map: Option<String> = None;
     {
       let mut buf = Vec::new();
@@ -227,6 +231,16 @@ pub fn bundle_graph(
 
     Ok(BundleEmit { code, maybe_map })
   })
+}
+
+fn shebang_file(graph: &deno_graph::ModuleGraph) -> Option<String> {
+  let source = graph.get(graph.roots.get(0)?)?.maybe_source.as_ref()?;
+  let first_line = source.lines().next()?;
+  if first_line.starts_with("#!") {
+    Some(first_line.to_string())
+  } else {
+    None
+  }
 }
 
 /// Transpiles a source module into an swc SourceFile.
@@ -291,4 +305,73 @@ fn transpile_module(
   };
 
   Ok((source_file, module))
+}
+
+#[cfg(test)]
+mod test {
+  use deno_ast::ModuleSpecifier;
+  use deno_graph::create_graph;
+  use deno_graph::source::MemoryLoader;
+  use deno_graph::source::Source;
+  use deno_graph::CapturingModuleAnalyzer;
+  use deno_graph::GraphOptions;
+  use deno_graph::ModuleGraph;
+  use pretty_assertions::assert_eq;
+
+  use crate::bundle_graph;
+  use crate::BundleOptions;
+
+  pub(crate) async fn setup<S: AsRef<str> + Copy>(
+    root: S,
+    sources: Vec<(S, S)>,
+  ) -> (ModuleGraph, CapturingModuleAnalyzer, ModuleSpecifier) {
+    let sources = sources
+      .into_iter()
+      .map(|(s, c)| {
+        (
+          s,
+          Source::Module {
+            specifier: s,
+            maybe_headers: None,
+            content: c,
+          },
+        )
+      })
+      .collect();
+    let mut memory_loader = MemoryLoader::new(sources, vec![]);
+    let root = ModuleSpecifier::parse(root.as_ref()).unwrap();
+    let analyzer = CapturingModuleAnalyzer::default();
+    let graph = create_graph(
+      vec![root.clone()],
+      &mut memory_loader,
+      GraphOptions {
+        module_analyzer: Some(&analyzer),
+        ..Default::default()
+      },
+    )
+    .await;
+    (graph, analyzer, root)
+  }
+
+  #[tokio::test]
+  async fn bundle_shebang_file() {
+    let input = concat!(
+      "#!/usr/bin/env -S deno run --allow-read\n",
+      "console.log(5)",
+    );
+    let graph = setup("file:///test.ts", vec![("file:///test.ts", input)])
+      .await
+      .0;
+
+    let output = bundle_graph(
+      &graph,
+      BundleOptions {
+        bundle_type: crate::BundleType::Module,
+        emit_ignore_directives: false,
+        emit_options: Default::default(),
+      },
+    )
+    .unwrap();
+    assert_eq!(&output.code[..input.len()], input);
+  }
 }

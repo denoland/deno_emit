@@ -16,3 +16,7 @@ deno_graph = "0.42.0"
 escape8259 = "0.5.2"
 futures = "0.3.17"
 parking_lot = { version = "0.11.2" }
+
+[dev-dependencies]
+pretty_assertions = "1.0.0"
+tokio = { version = "1.11.0", features = ["full"] }
