@@ -28,7 +28,7 @@ pub async fn bundle(
   bundle_options: BundleOptions,
 ) -> Result<BundleEmit> {
   let graph = deno_graph::create_graph(
-    vec![(root, deno_graph::ModuleKind::Esm)],
+    vec![root],
     loader,
     GraphOptions {
       imports: maybe_imports_map,
@@ -46,7 +46,7 @@ pub async fn transpile(
 ) -> Result<HashMap<String, String>> {
   let analyzer = CapturingModuleAnalyzer::default();
   let graph = deno_graph::create_graph(
-    vec![(root, deno_graph::ModuleKind::Esm)],
+    vec![root],
     loader,
     GraphOptions {
       module_analyzer: Some(&analyzer),

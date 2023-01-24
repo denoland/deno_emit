@@ -169,7 +169,7 @@ pub fn bundle_graph(
     let mut entries = HashMap::new();
     entries.insert(
       "bundle".to_string(),
-      swc::common::FileName::Url(graph.roots[0].0.clone()),
+      swc::common::FileName::Url(graph.roots[0].clone()),
     );
     let output = bundler
       .bundle(entries)
