@@ -208,7 +208,7 @@ pub fn bundle_graph(
         .context("Unable to emit during bundling.")?;
     }
     let mut code = shebang_file(graph)
-      .map(|shebang| format!("{}\n", shebang))
+      .map(|shebang| format!("{shebang}\n"))
       .unwrap_or_default();
     code.push_str(
       &String::from_utf8(buf).context("Emitted code is an invalid string.")?,
@@ -310,11 +310,10 @@ fn transpile_module(
 #[cfg(test)]
 mod test {
   use deno_ast::ModuleSpecifier;
-  use deno_graph::create_graph;
   use deno_graph::source::MemoryLoader;
   use deno_graph::source::Source;
+  use deno_graph::BuildOptions;
   use deno_graph::CapturingModuleAnalyzer;
-  use deno_graph::GraphOptions;
   use deno_graph::ModuleGraph;
   use pretty_assertions::assert_eq;
 
@@ -341,15 +340,17 @@ mod test {
     let mut memory_loader = MemoryLoader::new(sources, vec![]);
     let root = ModuleSpecifier::parse(root.as_ref()).unwrap();
     let analyzer = CapturingModuleAnalyzer::default();
-    let graph = create_graph(
-      vec![root.clone()],
-      &mut memory_loader,
-      GraphOptions {
-        module_analyzer: Some(&analyzer),
-        ..Default::default()
-      },
-    )
-    .await;
+    let mut graph = ModuleGraph::default();
+    graph
+      .build(
+        vec![root.clone()],
+        &mut memory_loader,
+        BuildOptions {
+          module_analyzer: Some(&analyzer),
+          ..Default::default()
+        },
+      )
+      .await;
     (graph, analyzer, root)
   }
 

@@ -5,9 +5,11 @@ mod emit;
 mod text;
 
 use anyhow::Result;
+use deno_graph::BuildOptions;
 use deno_graph::CapturingModuleAnalyzer;
-use deno_graph::GraphOptions;
+use deno_graph::ModuleGraph;
 use deno_graph::ParsedSourceStore;
+use deno_graph::ReferrerImports;
 use std::collections::HashMap;
 
 pub use emit::bundle_graph;
@@ -27,15 +29,21 @@ pub async fn bundle(
   maybe_imports_map: Option<Vec<(ModuleSpecifier, Vec<String>)>>,
   bundle_options: BundleOptions,
 ) -> Result<BundleEmit> {
-  let graph = deno_graph::create_graph(
-    vec![root],
-    loader,
-    GraphOptions {
-      imports: maybe_imports_map,
-      ..Default::default()
-    },
-  )
-  .await;
+  let mut graph = ModuleGraph::default();
+  graph
+    .build(
+      vec![root],
+      loader,
+      BuildOptions {
+        imports: maybe_imports_map
+          .unwrap_or_default()
+          .into_iter()
+          .map(|(referrer, imports)| (ReferrerImports { referrer, imports }))
+          .collect(),
+        ..Default::default()
+      },
+    )
+    .await;
 
   bundle_graph(&graph, bundle_options)
 }
@@ -45,15 +53,17 @@ pub async fn transpile(
   loader: &mut dyn Loader,
 ) -> Result<HashMap<String, String>> {
   let analyzer = CapturingModuleAnalyzer::default();
-  let graph = deno_graph::create_graph(
-    vec![root],
-    loader,
-    GraphOptions {
-      module_analyzer: Some(&analyzer),
-      ..Default::default()
-    },
-  )
-  .await;
+  let mut graph = ModuleGraph::default();
+  graph
+    .build(
+      vec![root],
+      loader,
+      BuildOptions {
+        module_analyzer: Some(&analyzer),
+        ..Default::default()
+      },
+    )
+    .await;
 
   graph.valid()?;
 

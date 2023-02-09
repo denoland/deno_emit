@@ -18,8 +18,8 @@ base64 = "0.13.0"
 deno_emit = { path = "../rs-lib" }
 js-sys = { version = "0.3.58" }
 serde = { version = "1.0.130", features = ["derive", "rc"] }
-wasm-bindgen = { version = "0.2.81", features = ["serde-serialize"] }
-wasm-bindgen-futures = { version = "0.4.31" }
+wasm-bindgen = { version = "=0.2.81", features = ["serde-serialize"] }
+wasm-bindgen-futures = { version = "=0.4.31" }
 
 [profile.release]
 codegen-units = 1
