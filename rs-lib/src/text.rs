@@ -25,7 +25,7 @@ mod test {
 
   #[test]
   fn strip_bom_with_bom() {
-    let text = format!("{}text", BOM_CHAR);
+    let text = format!("{BOM_CHAR}text");
     assert_eq!(strip_bom(&text), "text");
   }
 

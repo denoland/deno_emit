@@ -147,8 +147,7 @@ pub async fn bundle(
     Some("classic") => BundleType::Classic,
     Some(value) => {
       return Err(JsValue::from(js_sys::Error::new(&format!(
-        "Unsupported bundle type \"{}\"",
-        value
+        "Unsupported bundle type \"{value}\"",
       ))))
     }
   };
