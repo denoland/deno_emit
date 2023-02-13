@@ -157,9 +157,9 @@ export async function bundle(
   return jsBundle(
     root.toString(),
     bundleLoad,
+    "module",
     JSON.stringify(imports),
-    undefined,
-    undefined,
+    JSON.stringify({})
   );
 }
 
