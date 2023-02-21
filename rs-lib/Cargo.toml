@@ -12,7 +12,7 @@ license = "MIT"
 anyhow = "1.0.44"
 base64 = "0.13.0"
 deno_ast = { version = "0.24.0", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
-deno_graph = "0.43.0"
+deno_graph = "0.43.2"
 escape8259 = "0.5.2"
 futures = "0.3.17"
 parking_lot = { version = "0.11.2" }
@@ -20,3 +20,6 @@ parking_lot = { version = "0.11.2" }
 [dev-dependencies]
 pretty_assertions = "1.0.0"
 tokio = { version = "1.11.0", features = ["full"] }
+
+[patch.crates-io]
+deno_graph = { path = "../deno_graph" }

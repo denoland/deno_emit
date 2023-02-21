@@ -69,7 +69,7 @@ pub async fn transpile(
 
   let mut map = HashMap::new();
 
-  for module in graph.modules() {
+  for module in graph.modules().filter_map(|m| m.esm()) {
     if let Some(parsed_source) = analyzer.get_parsed_source(&module.specifier) {
       // TODO: add emit options
       let emit_options = Default::default();
