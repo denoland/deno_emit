@@ -73,34 +73,38 @@ impl swc::bundler::Load for BundleLoader<'_> {
   ) -> Result<swc::bundler::ModuleData> {
     match file_name {
       swc::common::FileName::Url(specifier) => {
-        match self.graph.get(specifier) {
+        let (source, media_type) = match self.graph.get(specifier) {
           Some(Module::Esm(m)) => {
-            let (fm, module) = transpile_module(
-              specifier,
-              &m.source,
-              m.media_type,
-              self.emit_options,
-              self.cm.clone(),
-            )?;
-            Ok(swc::bundler::ModuleData {
-              fm,
-              module,
-              helpers: Default::default(),
-            })
-          }
+            (&m.source, m.media_type)
+          },
+          Some(Module::Json(m)) => {
+            (&m.source, m.media_type)
+          },
           Some(_) => {
-            Err(anyhow!(
+            return Err(anyhow!(
               "Module \"{}\" was an unsupported module kind.",
               specifier
-            ))
+            ));
           }
           None => {
-            Err(anyhow!(
+            return Err(anyhow!(
               "Module \"{}\" unexpectedly missing when bundling.",
               specifier
-            ))
+            ));
           }
-        }
+        };
+        let (fm, module) = transpile_module(
+          specifier,
+          source,
+          media_type,
+          self.emit_options,
+          self.cm.clone(),
+        )?;
+        Ok(swc::bundler::ModuleData {
+          fm,
+          module,
+          helpers: Default::default(),
+        })
       }
       _ => unreachable!(
         "Received a request for unsupported filename {:?}",
