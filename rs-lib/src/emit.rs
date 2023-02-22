@@ -74,12 +74,8 @@ impl swc::bundler::Load for BundleLoader<'_> {
     match file_name {
       swc::common::FileName::Url(specifier) => {
         let (source, media_type) = match self.graph.get(specifier) {
-          Some(Module::Esm(m)) => {
-            (&m.source, m.media_type)
-          },
-          Some(Module::Json(m)) => {
-            (&m.source, m.media_type)
-          },
+          Some(Module::Esm(m)) => (&m.source, m.media_type),
+          Some(Module::Json(m)) => (&m.source, m.media_type),
           Some(_) => {
             return Err(anyhow!(
               "Module \"{}\" was an unsupported module kind.",
