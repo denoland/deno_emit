@@ -133,7 +133,7 @@ impl swc::bundler::Resolve for BundleResolver<'_> {
     if let Some(specifier) =
       self.0.resolve_dependency(specifier, referrer, false)
     {
-      Ok(deno_ast::swc::common::FileName::Url(specifier.clone()))
+      Ok(deno_ast::swc::common::FileName::Url(specifier))
     } else {
       Err(anyhow!(
         "Cannot resolve \"{}\" from \"{}\".",
