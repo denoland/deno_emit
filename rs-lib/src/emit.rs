@@ -15,6 +15,7 @@ use deno_ast::EmitOptions;
 use deno_ast::MediaType;
 use deno_ast::ModuleSpecifier;
 use deno_ast::SourceTextInfo;
+use deno_graph::Module;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -72,25 +73,34 @@ impl swc::bundler::Load for BundleLoader<'_> {
   ) -> Result<swc::bundler::ModuleData> {
     match file_name {
       swc::common::FileName::Url(specifier) => {
-        if let Some(m) = self.graph.get(specifier) {
-          let (fm, module) = transpile_module(
-            specifier,
-            m.maybe_source.as_ref().map(|s| s as &str).unwrap_or(""),
-            m.media_type,
-            self.emit_options,
-            self.cm.clone(),
-          )?;
-          Ok(swc::bundler::ModuleData {
-            fm,
-            module,
-            helpers: Default::default(),
-          })
-        } else {
-          Err(anyhow!(
-            "Module \"{}\" unexpectedly missing when bundling.",
-            specifier
-          ))
-        }
+        let (source, media_type) = match self.graph.get(specifier) {
+          Some(Module::Esm(m)) => (&m.source, m.media_type),
+          Some(Module::Json(m)) => (&m.source, m.media_type),
+          Some(_) => {
+            return Err(anyhow!(
+              "Module \"{}\" was an unsupported module kind.",
+              specifier
+            ));
+          }
+          None => {
+            return Err(anyhow!(
+              "Module \"{}\" unexpectedly missing when bundling.",
+              specifier
+            ));
+          }
+        };
+        let (fm, module) = transpile_module(
+          specifier,
+          source,
+          media_type,
+          self.emit_options,
+          self.cm.clone(),
+        )?;
+        Ok(swc::bundler::ModuleData {
+          fm,
+          module,
+          helpers: Default::default(),
+        })
       }
       _ => unreachable!(
         "Received a request for unsupported filename {:?}",
@@ -119,7 +129,7 @@ impl swc::bundler::Resolve for BundleResolver<'_> {
     if let Some(specifier) =
       self.0.resolve_dependency(specifier, referrer, false)
     {
-      Ok(deno_ast::swc::common::FileName::Url(specifier.clone()))
+      Ok(deno_ast::swc::common::FileName::Url(specifier))
     } else {
       Err(anyhow!(
         "Cannot resolve \"{}\" from \"{}\".",
@@ -234,8 +244,8 @@ pub fn bundle_graph(
 }
 
 fn shebang_file(graph: &deno_graph::ModuleGraph) -> Option<String> {
-  let source = graph.get(graph.roots.get(0)?)?.maybe_source.as_ref()?;
-  let first_line = source.lines().next()?;
+  let module = graph.get(graph.roots.get(0)?)?.esm()?;
+  let first_line = module.source.lines().next()?;
   if first_line.starts_with("#!") {
     Some(first_line.to_string())
   } else {
