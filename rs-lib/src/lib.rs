@@ -2,6 +2,7 @@
 
 mod bundle_hook;
 mod emit;
+mod pack;
 mod text;
 
 use anyhow::Result;
@@ -22,6 +23,8 @@ pub use deno_ast::ImportsNotUsedAsValues;
 pub use deno_ast::ModuleSpecifier;
 pub use deno_graph::source::LoadFuture;
 pub use deno_graph::source::Loader;
+
+pub use pack::pack;
 
 pub async fn bundle(
   root: ModuleSpecifier,
