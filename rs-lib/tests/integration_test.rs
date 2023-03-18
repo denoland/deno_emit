@@ -27,7 +27,9 @@ export interface Logger {
 export const logger: Logger = { log(...args: any[]) { console.log(...args); }};"#);
   });
 
-  assert_eq!(builder.pack().await.unwrap(), r#"// file:///logger.ts
+  assert_eq!(
+    builder.pack().await.unwrap(),
+    r#"// file:///logger.ts
 namespace pack0 {
 export interface Logger {
   log(...args: any[]): void;
@@ -44,5 +46,6 @@ const myLogger: pack0.Logger = {
 }
 
 console.log(myLogger.log("Hello"));
-"#);
+"#
+  );
 }

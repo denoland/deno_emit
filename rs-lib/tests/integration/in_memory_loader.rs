@@ -1,6 +1,6 @@
 // Copyright 2018-2023 the Deno authors. All rights reserved. MIT license.
 
-// todo: consolidate with deno_ast
+// todo: consolidate with dnt
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -116,17 +116,14 @@ impl Loader for InMemoryLoader {
     is_dynamic: bool,
   ) -> Pin<Box<dyn Future<Output = Result<Option<LoadResponse>>> + 'static>> {
     let specifier = specifier.clone();
-    let result = self
-      .modules
-      .get(&specifier)
-      .map(|result| match result {
-        Ok(result) => Ok(LoadResponse::Module {
-          specifier, // todo: test a re-direct
-          content: result.0.clone(),
-          maybe_headers: result.1.clone(),
-        }),
-        Err(err) => Err(err),
-      });
+    let result = self.modules.get(&specifier).map(|result| match result {
+      Ok(result) => Ok(LoadResponse::Module {
+        specifier, // todo: test a re-direct
+        content: result.0.clone(),
+        maybe_headers: result.1.clone(),
+      }),
+      Err(err) => Err(err),
+    });
     let result = match result {
       Some(Ok(result)) => Ok(Some(result)),
       Some(Err(err)) => Err(anyhow!("{}", err)),

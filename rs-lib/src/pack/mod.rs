@@ -7,6 +7,17 @@ use std::sync::Arc;
 
 use anyhow::bail;
 use anyhow::Result;
+use deno_ast::apply_text_changes;
+use deno_ast::parse_module;
+use deno_ast::swc::ast::Id;
+use deno_ast::view::AwaitExpr;
+use deno_ast::view::ImportSpecifier;
+use deno_ast::view::Module;
+use deno_ast::view::ModuleDecl;
+use deno_ast::view::ModuleExportName;
+use deno_ast::view::ModuleItem;
+use deno_ast::view::Node;
+use deno_ast::view::NodeTrait;
 use deno_ast::Diagnostic;
 use deno_ast::MediaType;
 use deno_ast::ModuleSpecifier;
@@ -16,17 +27,6 @@ use deno_ast::SourceRanged;
 use deno_ast::SourceTextInfo;
 use deno_ast::SourceTextInfoProvider;
 use deno_ast::TextChange;
-use deno_ast::apply_text_changes;
-use deno_ast::parse_module;
-use deno_ast::swc::ast::Id;
-use deno_ast::view::ImportSpecifier;
-use deno_ast::view::AwaitExpr;
-use deno_ast::view::Module;
-use deno_ast::view::ModuleDecl;
-use deno_ast::view::ModuleExportName;
-use deno_ast::view::ModuleItem;
-use deno_ast::view::Node;
-use deno_ast::view::NodeTrait;
 use deno_graph::CapturingModuleParser;
 use deno_graph::ModuleGraph;
 use deno_graph::ModuleParser;
@@ -41,12 +41,13 @@ struct ModuleDataCollection {
 impl ModuleDataCollection {
   pub fn get_mut(&mut self, specifier: &ModuleSpecifier) -> &mut ModuleData {
     let next_id = self.module_data.len();
-    self.module_data.entry(specifier.clone()).or_insert_with(|| {
-      ModuleData {
+    self
+      .module_data
+      .entry(specifier.clone())
+      .or_insert_with(|| ModuleData {
         id: next_id,
         text_changes: Default::default(),
-      }
-    })
+      })
   }
 }
 
@@ -68,13 +69,17 @@ pub fn pack(
   let mut dynamic_modules: HashSet<ModuleSpecifier> = Default::default();
   let mut module_data = ModuleDataCollection::default();
   let mut seen: HashSet<&ModuleSpecifier> = Default::default();
-  let mut ordered_specifiers: Vec<(&ModuleSpecifier, &deno_graph::Module)> = Default::default();
+  let mut ordered_specifiers: Vec<(&ModuleSpecifier, &deno_graph::Module)> =
+    Default::default();
 
-  let modules = graph.walk(roots, WalkOptions {
-    check_js: true,
-    follow_dynamic: true,
-    follow_type_only: true,
-  });
+  let modules = graph.walk(
+    roots,
+    WalkOptions {
+      check_js: true,
+      follow_dynamic: true,
+      follow_type_only: true,
+    },
+  );
   for (specifier, _) in modules {
     let module = graph.get(specifier).unwrap();
     let specifier = module.specifier();
@@ -84,7 +89,8 @@ pub fn pack(
 
     if let Some(esm) = module.esm() {
       ordered_specifiers.push((specifier, module));
-      let parsed_source = parser.parse_module(specifier, esm.source.clone(), esm.media_type)?;
+      let parsed_source =
+        parser.parse_module(specifier, esm.source.clone(), esm.media_type)?;
 
       parsed_source.with_view(|program| {
         let mut replace_ids = HashMap::new();
@@ -116,36 +122,49 @@ pub fn pack(
                         ImportSpecifier::Default(default_specifier) => {
                           //default_specifier.local.
                         }
-                        ImportSpecifier::Namespace(namespace_specifier) => {
-                        }
+                        ImportSpecifier::Namespace(namespace_specifier) => {}
                         ImportSpecifier::Named(named_specifier) => {
                           replace_ids.insert(
                             named_specifier.local.to_id(),
-                            format!("pack{}.{}", dep_module_id, named_specifier.imported.map(|i| {
-                              match i {
-                                ModuleExportName::Str(_) => todo!(),
-                                ModuleExportName::Ident(ident) => {
-                                  ident.text_fast(module)
-                                },
-                              }
-                            }).unwrap_or_else(|| named_specifier.local.text_fast(module))));
+                            format!(
+                              "pack{}.{}",
+                              dep_module_id,
+                              named_specifier
+                                .imported
+                                .map(|i| {
+                                  match i {
+                                    ModuleExportName::Str(_) => todo!(),
+                                    ModuleExportName::Ident(ident) => {
+                                      ident.text_fast(module)
+                                    }
+                                  }
+                                })
+                                .unwrap_or_else(|| named_specifier
+                                  .local
+                                  .text_fast(module))
+                            ),
+                          );
                         }
                       }
                     }
 
                     // remove the import statement
-                    module_data.get_mut(&specifier).text_changes.push(TextChange {
-                      range: range.as_byte_range(parsed_source.text_info().range().start),
-                      new_text: String::new(),
-                    });
+                    module_data.get_mut(&specifier).text_changes.push(
+                      TextChange {
+                        range: range.as_byte_range(
+                          parsed_source.text_info().range().start,
+                        ),
+                        new_text: String::new(),
+                      },
+                    );
                   }
                   None => {
                     todo!();
                   }
                 }
-              },
-              _ => {},
-            }
+              }
+              _ => {}
+            },
           }
         }
 
@@ -161,7 +180,9 @@ pub fn pack(
                 let id = ident.to_id();
                 if let Some(text) = replace_ids.get(&id) {
                   module_data.text_changes.push(TextChange {
-                    range: ident.range().as_byte_range(module.text_info().range().start),
+                    range: ident
+                      .range()
+                      .as_byte_range(module.text_info().range().start),
                     new_text: text.clone(),
                   })
                 }
@@ -177,7 +198,12 @@ pub fn pack(
         for module_item in &module.body {
           match module_item {
             ModuleItem::Stmt(stmt) => {
-              for_each_descendant(stmt.into(), module_data, &replace_ids, module);
+              for_each_descendant(
+                stmt.into(),
+                module_data,
+                &replace_ids,
+                module,
+              );
             }
             _ => {}
           }
@@ -192,7 +218,8 @@ pub fn pack(
     let module = module.esm().unwrap();
     // todo: don't clone
     let module_data = module_data.get_mut(specifier);
-    let module_text = apply_text_changes(&module.source, module_data.text_changes.clone());
+    let module_text =
+      apply_text_changes(&module.source, module_data.text_changes.clone());
     let id = format!("pack{}", module_data.id);
     if !final_text.is_empty() {
       final_text.push('\n');
@@ -202,7 +229,11 @@ pub fn pack(
       final_text.push_str(&module_text.trim());
       final_text.push_str("\n");
     } else {
-      final_text.push_str(&format!("namespace {} {{\n{}\n}}\n", id, module_text.trim()));
+      final_text.push_str(&format!(
+        "namespace {} {{\n{}\n}}\n",
+        id,
+        module_text.trim()
+      ));
     }
   }
 
