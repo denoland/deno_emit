@@ -7,9 +7,14 @@ use std::sync::Arc;
 
 use anyhow::bail;
 use anyhow::Result;
+use deno_ast::SourceRangedForSpanned;
 use deno_ast::apply_text_changes;
 use deno_ast::parse_module;
+use deno_ast::view::DefaultDecl;
 use deno_ast::swc::ast::Id;
+use deno_ast::swc::parser::token::Keyword;
+use deno_ast::swc::parser::token::Token;
+use deno_ast::swc::parser::token::Word;
 use deno_ast::view::AwaitExpr;
 use deno_ast::view::ImportSpecifier;
 use deno_ast::view::Module;
@@ -45,14 +50,23 @@ impl ModuleDataCollection {
       .module_data
       .entry(specifier.clone())
       .or_insert_with(|| ModuleData {
-        id: next_id,
+        id: ModuleId(next_id),
         text_changes: Default::default(),
       })
   }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct ModuleId(usize);
+
+impl ModuleId {
+  pub fn to_code_string(&self) -> String {
+    format!("pack{}", self.0)
+  }
+}
+
 struct ModuleData {
-  id: usize,
+  id: ModuleId,
   text_changes: Vec<TextChange>,
 }
 
@@ -120,15 +134,26 @@ pub fn pack(
                     for import_specifier in &import.specifiers {
                       match import_specifier {
                         ImportSpecifier::Default(default_specifier) => {
-                          //default_specifier.local.
+                          replace_ids.insert(
+                            default_specifier.local.to_id(),
+                            format!(
+                              "{}.__pack_default__",
+                              dep_module_id.to_code_string(),
+                            ),
+                          );
                         }
-                        ImportSpecifier::Namespace(namespace_specifier) => {}
+                        ImportSpecifier::Namespace(namespace_specifier) => {
+                          replace_ids.insert(
+                            namespace_specifier.local.to_id(),
+                            dep_module_id.to_code_string(),
+                          );
+                        }
                         ImportSpecifier::Named(named_specifier) => {
                           replace_ids.insert(
                             named_specifier.local.to_id(),
                             format!(
-                              "pack{}.{}",
-                              dep_module_id,
+                              "{}.{}",
+                              dep_module_id.to_code_string(),
                               named_specifier
                                 .imported
                                 .map(|i| {
@@ -160,6 +185,64 @@ pub fn pack(
                   }
                   None => {
                     todo!();
+                  }
+                }
+              }
+              ModuleDecl::ExportDefaultDecl(decl) => {
+                let export_keyword = decl.tokens_fast(module).iter().find(|t| t.token == Token::Word(Word::Keyword(Keyword::Export))).unwrap();
+                let default_keyword = export_keyword.range().next_token_fast(module).unwrap();
+                assert_eq!(default_keyword.token, Token::Word(Word::Keyword(Keyword::Default_)));
+                let file_start = parsed_source.text_info().range().start;
+                // remove the "export default" keywords
+                let module_data = module_data.get_mut(&specifier);
+                module_data.text_changes.push(
+                  TextChange {
+                    range: export_keyword.start().as_byte_index(file_start)..default_keyword.end().as_byte_index(file_start),
+                    new_text: String::new(),
+                  },
+                );
+
+                // change the default export to have a different name for the export
+                // since we can't use the word "default"
+                if let DefaultDecl::TsInterfaceDecl(decl) = &decl.decl {
+                    let end = decl.end().as_byte_index(file_start);
+                    module_data.text_changes.push(
+                      TextChange {
+                        range: end..end,
+                        new_text: format!("\nexport interface __pack_default__ extends {} {{}}", decl.id.sym()),
+                      }
+                    )
+                } else {
+                  let maybe_ident = match &decl.decl {
+                    DefaultDecl::Class(decl) => {
+                      decl.ident.as_ref()
+                    }
+                    DefaultDecl::Fn(decl) => {
+                      decl.ident.as_ref()
+                    }
+                    DefaultDecl::TsInterfaceDecl(_) => {
+                      unreachable!();
+                    }
+                  };
+                  match maybe_ident {
+                    Some(ident) => {
+                      let end = decl.end().as_byte_index(file_start);
+                      module_data.text_changes.push(
+                        TextChange {
+                          range: end..end,
+                          new_text: format!("\nexport const __pack_default__ = {};", ident.sym()),
+                        }
+                      )
+                    },
+                    None => {
+                      let start = decl.start().as_byte_index(file_start);
+                      module_data.text_changes.push(
+                        TextChange {
+                          range: start..start,
+                          new_text: "export const __pack_default__ = ".to_string(),
+                        }
+                      )
+                    }
                   }
                 }
               }
@@ -208,19 +291,17 @@ pub fn pack(
             _ => {}
           }
         }
-        Ok(())
-      })?;
+      });
     }
   }
 
   let mut final_text = String::new();
   for (specifier, module) in ordered_specifiers.iter().rev() {
     let module = module.esm().unwrap();
-    // todo: don't clone
     let module_data = module_data.get_mut(specifier);
+    // todo: don't clone
     let module_text =
       apply_text_changes(&module.source, module_data.text_changes.clone());
-    let id = format!("pack{}", module_data.id);
     if !final_text.is_empty() {
       final_text.push('\n');
     }
@@ -231,7 +312,7 @@ pub fn pack(
     } else {
       final_text.push_str(&format!(
         "namespace {} {{\n{}\n}}\n",
-        id,
+        module_data.id.to_code_string(),
         module_text.trim()
       ));
     }

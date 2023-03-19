@@ -45,7 +45,7 @@ impl TestBuilder {
     self
   }
 
-  pub async fn pack(&mut self) -> Result<String> {
+  pub async fn pack(&self) -> Result<String> {
     let roots = vec![ModuleSpecifier::parse(&self.entry_point).unwrap()];
     let source_parser = ScopeAnalysisParser::default();
     let capturing_analyzer =
@@ -54,7 +54,7 @@ impl TestBuilder {
     graph
       .build(
         roots,
-        &mut self.loader,
+        &mut self.loader.clone(),
         BuildOptions {
           is_dynamic: false,
           imports: Vec::new(),
