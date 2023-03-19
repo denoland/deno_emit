@@ -197,5 +197,5 @@ export const __pack_default__ = {
 console.log(pack0.__pack_default__.data);
 "#;
 
-  assert_eq!(builder.pack().await.unwrap(), expected_output,);
+  assert_eq!(builder.pack().await.unwrap(), expected_output);
 }

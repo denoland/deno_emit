@@ -86,7 +86,17 @@ pub fn pack(
   graph: &ModuleGraph,
   parser: &CapturingModuleParser,
 ) -> Result<String> {
-  // todo: handle dynamic imports
+  // TODO
+  // - dynamic imports
+  // - `export { something, other as otherThing };` (use temp inner namespace for this)
+  // - `export { exp1, type exp2 } from "./module.ts"`
+  // - `export type { exp2 } from "./module.ts"`
+  // - `export * from "./module.ts";`
+  // - `export type * from "./module.ts";`
+  // - `export default 5` (use temp inner namespace for this)
+  // - tla
+  // - order modules properly
+
   let roots = &graph.roots;
   assert_eq!(roots.len(), 1);
   let mut context = Context {
@@ -95,6 +105,8 @@ pub fn pack(
     module_data: ModuleDataCollection::default(),
   };
 
+  // todo: this is not correct. It should output by walking the graph
+  // in the order that the loader does
   let mut ordered_specifiers: Vec<(&ModuleSpecifier, &deno_graph::Module)> =
     Default::default();
 
