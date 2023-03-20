@@ -29,14 +29,15 @@ export interface Logger {
 export const logger: Logger = { log(...args: any[]) { console.log(...args); }};"#);
   });
 
-  let expected_output = r#"// file:///logger.ts
-namespace pack0 {
-export interface Logger {
-  log(...args: any[]): void;
-}
+  let expected_output = r#"const pack0 = {
+  logger: undefined,
+};
 
-export const logger: Logger = { log(...args: any[]) { console.log(...args); }};
-}
+// file:///logger.ts
+(() => {
+const logger: Logger = { log(...args: any[]) { console.log(...args); }};
+pack0.logger = logger;
+})();
 
 // file:///mod.ts
 const myLogger: pack0.Logger = {
@@ -125,41 +126,53 @@ export default function() {}
     );
   });
 
-  let expected_output = r#"// file:///e.ts
-namespace pack5 {
-export const __pack_default__ =  function() {}
-}
+  let expected_output = r#"const pack1 = {
+  default: undefined,
+};
+const pack2 = {
+  default: undefined,
+};
+const pack3 = {
+  default: undefined,
+};
+const pack4 = {
+  default: undefined,
+};
+
+// file:///e.ts
+(() => {
+const __pack_default__ = function() {}
+pack4.default = __pack_default__;
+})();
 
 // file:///d.ts
-namespace pack4 {
+(() => {
 function d() {}
-export const __pack_default__ = d;
-}
+pack3.default = d;
+})();
 
 // file:///c.ts
-namespace pack3 {
-export const __pack_default__ =  class {}
-}
+(() => {
+const __pack_default__ = class {}
+pack2.default = __pack_default__;
+})();
 
 // file:///b.ts
-namespace pack2 {
+(() => {
 class B {}
-export const __pack_default__ = B;
-}
+pack1.default = B;
+})();
 
 // file:///a.ts
-namespace pack0 {
-interface A {
-}
-export interface __pack_default__ extends A {}
-}
+(() => {
+export default
+})();
 
 // file:///mod.ts
-type Test = pack0.__pack_default__;
-console.log(pack2.__pack_default__);
-console.log(pack3.__pack_default__);
-console.log(pack4.__pack_default__);
-console.log(pack5.__pack_default__);
+console.log(pack1.default);
+console.log(pack2.default);
+console.log(pack3.default);
+console.log(pack4.default);
 "#;
 
   assert_eq!(builder.pack().await.unwrap(), expected_output,);
@@ -187,14 +200,14 @@ console.log(myJson.data);
   });
 
   let expected_output = r#"// file:///data.json
-namespace pack0 {
-export const __pack_default__ = {
+const pack0 = {
+  default: {
   "data": 5
-};
 }
+};
 
 // file:///mod.ts
-console.log(pack0.__pack_default__.data);
+console.log(pack0.default.data);
 "#;
 
   assert_eq!(builder.pack().await.unwrap(), expected_output);
