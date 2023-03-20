@@ -25,7 +25,7 @@ pub struct TestBuilder {
 
 impl TestBuilder {
   pub fn new() -> Self {
-    let loader = InMemoryLoader::new();
+    let loader = InMemoryLoader::default();
     Self {
       loader,
       entry_point: "file:///mod.ts".to_string(),

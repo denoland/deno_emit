@@ -55,23 +55,24 @@ fn is_windows_path_segment(specifier: &str) -> bool {
   chars.next().is_none()
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct InMemoryLoader {
   modules: HashMap<ModuleSpecifier, RemoteFileResult>,
 }
 
 impl InMemoryLoader {
-  pub fn new() -> Self {
-    Self {
-      modules: HashMap::new(),
-    }
-  }
-
   pub fn add_file(
     &mut self,
     specifier: impl AsRef<str>,
     text: impl AsRef<str>,
   ) -> &mut Self {
+    let specifier = specifier.as_ref();
+    let specifier =
+      if !specifier.starts_with("http") && !specifier.starts_with("file") {
+        ModuleSpecifier::parse(&format!("file:///{}", specifier)).unwrap()
+      } else {
+        ModuleSpecifier::parse(specifier).unwrap()
+      };
     self.modules.insert(
       ModuleSpecifier::parse(specifier.as_ref()).unwrap(),
       Ok((text.as_ref().into(), None)),

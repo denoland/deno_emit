@@ -1,0 +1,22 @@
+# a.ts
+const a = 1;
+export default a;
+
+# mod.ts
+import value from "./a.ts";
+console.log(value);
+
+# output.js
+const pack0 = {
+  default: undefined,
+};
+
+// file:///a.ts
+(() => {
+const a = 1;
+const __pack_default__ = a;
+Object.defineProperty(pack0, "default", { get: () => __pack_default__ });
+})();
+
+// file:///mod.ts
+console.log(pack0.default);

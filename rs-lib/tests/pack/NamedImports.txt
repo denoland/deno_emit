@@ -1,0 +1,37 @@
+# mod.ts
+import { logger, Logger } from './logger.ts';
+
+const myLogger: Logger = {
+  log(...args: any[]) {
+    logger.log(...args);
+  }
+}
+
+console.log(myLogger.log("Hello"));
+
+# logger.ts
+export interface Logger {
+  log(...args: any[]): void;
+}
+
+export const logger: Logger = { log(...args: any[]) { console.log(...args); }};
+
+# output.js
+const pack0 = {
+  logger: undefined,
+};
+
+// file:///logger.ts
+(() => {
+const logger: Logger = { log(...args: any[]) { console.log(...args); }};
+Object.defineProperty(pack0, "logger", { get: () => logger });
+})();
+
+// file:///mod.ts
+const myLogger: pack0.Logger = {
+  log(...args: any[]) {
+    pack0.logger.log(...args);
+  }
+}
+
+console.log(myLogger.log("Hello"));

@@ -1,0 +1,21 @@
+# mod.ts
+import myJson from './data.json' assert {
+  type: "json"
+};
+console.log(myJson.data);
+
+# data.json
+{
+  "data": 5
+}
+
+# output.js
+// file:///data.json
+const pack0 = {
+  default: {
+  "data": 5
+}
+};
+
+// file:///mod.ts
+console.log(pack0.default.data);

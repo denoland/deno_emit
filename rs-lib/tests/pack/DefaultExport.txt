@@ -1,0 +1,72 @@
+# mod.ts
+import Default1 from './a.ts';
+import Default2 from './b.ts';
+import Default3 from './c.ts';
+import Default4 from './d.ts';
+import Default5 from './e.ts';
+
+type Test = Default1;
+console.log(Default2);
+console.log(Default3);
+console.log(Default4);
+console.log(Default5);
+
+# a.ts
+export default interface A {
+}
+
+# b.ts
+export default class B {}
+
+# c.ts
+export default class {}
+
+# d.ts
+export default function d() {}
+
+# e.ts
+export default function() {}
+
+# output.js
+const pack1 = {
+  default: undefined,
+};
+const pack2 = {
+  default: undefined,
+};
+const pack3 = {
+  default: undefined,
+};
+const pack4 = {
+  default: undefined,
+};
+
+// file:///e.ts
+(() => {
+const __pack_default__ = function() {}
+Object.defineProperty(pack4, "default", { get: () => __pack_default__ });
+})();
+
+// file:///d.ts
+(() => {
+function d() {}
+Object.defineProperty(pack3, "default", { get: () => d });
+})();
+
+// file:///c.ts
+(() => {
+const __pack_default__ = class {}
+Object.defineProperty(pack2, "default", { get: () => __pack_default__ });
+})();
+
+// file:///b.ts
+(() => {
+class B {}
+Object.defineProperty(pack1, "default", { get: () => B });
+})();
+
+// file:///mod.ts
+console.log(pack1.default);
+console.log(pack2.default);
+console.log(pack3.default);
+console.log(pack4.default);
