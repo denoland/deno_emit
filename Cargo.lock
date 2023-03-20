@@ -224,7 +224,9 @@ checksum = "8d7439c3735f405729d52c3fbbe4de140eaf938a1fe47d227c27f8254d4302a5"
 
 [[package]]
 name = "deno_ast"
-version = "0.24.0"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b08341e0ed5b816e24b6582054b37707c8686de5598fa3004dc555131c993308"
 dependencies = [
  "anyhow",
  "base64",
@@ -282,7 +284,9 @@ dependencies = [
 
 [[package]]
 name = "deno_graph"
-version = "0.44.3"
+version = "0.45.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46c47969e9745b8ecd0bbf674e374a47a2cc465b00887716295b422ddb5ae56b"
 dependencies = [
  "anyhow",
  "data-url",
