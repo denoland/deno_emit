@@ -122,7 +122,7 @@ pub fn pack(
   // - `export type * from "./module.ts";`
   // - `export default 5`
   // - tla
-  // - order modules properly
+  // - order modules properly (https://v8.dev/features/top-level-await#module-execution-order)
 
   let roots = &graph.roots;
   assert_eq!(roots.len(), 1);
