@@ -10,12 +10,12 @@ console.log(myJson.data);
 }
 
 # output.js
-// file:///data.json
+// data.json
 const pack0 = {
   default: {
   "data": 5
 }
 };
 
-// file:///mod.ts
+// mod.ts
 console.log(pack0.default.data);

@@ -1,0 +1,61 @@
+# mod.ts
+import { getValue, modifyValue } from "./a.ts";
+
+console.log(getValue());
+modifyValue();
+console.log(getValue());
+
+# a.ts
+import { b } from "./b.ts";
+
+export function getValue() {
+  return b;
+}
+
+export { modifyValue } from "./b.ts";
+
+# b.ts
+import { getValue } from "./a.ts";
+
+export let b = 5;
+
+export function modifyValue() {
+  b = 2;
+  console.log(getValue());
+}
+
+# output.js
+const pack0 = {
+  getValue: undefined,
+  modifyValue: undefined,
+};
+const pack2 = {
+  b: undefined,
+  modifyValue: undefined,
+};
+
+// b.ts
+(() => {
+let b = 5;
+
+function modifyValue() {
+  b = 2;
+  console.log(pack0.getValue());
+}
+Object.defineProperty(pack2, "b", { get: () => b });
+Object.defineProperty(pack2, "modifyValue", { get: () => modifyValue });
+})();
+
+// a.ts
+(() => {
+function getValue() {
+  return pack2.b;
+}
+Object.defineProperty(pack0, "getValue", { get: () => getValue });
+Object.defineProperty(pack0, "modifyValue", { get: () => pack2.modifyValue });
+})();
+
+// mod.ts
+console.log(pack0.getValue());
+pack0.modifyValue();
+console.log(pack0.getValue());

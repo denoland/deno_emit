@@ -1,0 +1,48 @@
+# mod.ts
+const test: string = 5;
+
+function test<T>(test: string): string {
+  return (5 as 5) as string;
+}
+
+@decs<T>()
+class Test<T> implements Other extends Other2<T> {
+  private a: string;
+  protected b: string;
+  public c: number;
+  abstract d: number;
+  readonly e: number;
+  override f: number;
+  declare g: number;
+
+  constructor(public a: string, protected b: number, private c, readonly d, override e: number = 2) {
+    super();
+  }
+}
+
+# output.js
+// mod.ts
+const test = 5;
+
+function test(test) {
+  return (5);
+}
+
+@decs()
+class Test extends Other2 {
+  a;
+  b;
+  c;
+  d;
+  e;
+  f;
+
+  constructor(a, b, c, d, e = 2) {
+    super();
+this.a = a;
+this.b = b;
+this.c = c;
+this.d = d;
+this.e = e;
+  }
+}

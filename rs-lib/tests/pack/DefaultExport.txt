@@ -41,31 +41,31 @@ const pack4 = {
   default: undefined,
 };
 
-// file:///e.ts
+// e.ts
 (() => {
 const __pack_default__ = function() {}
 Object.defineProperty(pack4, "default", { get: () => __pack_default__ });
 })();
 
-// file:///d.ts
+// d.ts
 (() => {
 function d() {}
 Object.defineProperty(pack3, "default", { get: () => d });
 })();
 
-// file:///c.ts
+// c.ts
 (() => {
 const __pack_default__ = class {}
 Object.defineProperty(pack2, "default", { get: () => __pack_default__ });
 })();
 
-// file:///b.ts
+// b.ts
 (() => {
 class B {}
 Object.defineProperty(pack1, "default", { get: () => B });
 })();
 
-// file:///mod.ts
+// mod.ts
 console.log(pack1.default);
 console.log(pack2.default);
 console.log(pack3.default);

@@ -21,15 +21,15 @@ const pack0 = {
   logger: undefined,
 };
 
-// file:///logger.ts
+// logger.ts
 (() => {
-const logger: Logger = { log(...args: any[]) { console.log(...args); }};
+const logger = { log(...args) { console.log(...args); }};
 Object.defineProperty(pack0, "logger", { get: () => logger });
 })();
 
-// file:///mod.ts
-const myLogger: pack0.Logger = {
-  log(...args: any[]) {
+// mod.ts
+const myLogger = {
+  log(...args) {
     pack0.logger.log(...args);
   }
 }

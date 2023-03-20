@@ -11,7 +11,7 @@ license = "MIT"
 [dependencies]
 anyhow = "1.0.44"
 base64 = "0.13.0"
-deno_ast = { version = "0.25.0", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
+deno_ast = { version = "0.25.0", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling", "view"] }
 deno_graph = "0.45.0"
 escape8259 = "0.5.2"
 futures = "0.3.17"

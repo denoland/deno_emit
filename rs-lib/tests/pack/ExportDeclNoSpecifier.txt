@@ -34,17 +34,17 @@ const pack2 = {
   b: undefined,
 };
 
-// file:///c.ts
+// c.ts
 (() => {
 Object.defineProperty(pack2, "b", { get: () => pack0.b });
 })();
 
-// file:///b.ts
+// b.ts
 (() => {
 Object.defineProperty(pack1, "a", { get: () => pack0.a });
 })();
 
-// file:///a.ts
+// a.ts
 (() => {
 const a = 1;
 const b = 2;
@@ -52,7 +52,7 @@ Object.defineProperty(pack0, "a", { get: () => a });
 Object.defineProperty(pack0, "b", { get: () => b });
 })();
 
-// file:///mod.ts
+// mod.ts
 console.log(pack0.a);
 console.log(pack0.b);
 console.log(pack1.a);

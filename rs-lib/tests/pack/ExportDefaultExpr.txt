@@ -11,12 +11,12 @@ const pack0 = {
   default: undefined,
 };
 
-// file:///a.ts
+// a.ts
 (() => {
 const a = 1;
 const __pack_default__ = a;
 Object.defineProperty(pack0, "default", { get: () => __pack_default__ });
 })();
 
-// file:///mod.ts
+// mod.ts
 console.log(pack0.default);
