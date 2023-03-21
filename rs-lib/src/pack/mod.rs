@@ -66,7 +66,11 @@ struct ModuleDataCollection {
 }
 
 impl ModuleDataCollection {
-  pub fn get(&mut self, specifier: &ModuleSpecifier) -> &mut ModuleData {
+  pub fn get(&self, specifier: &ModuleSpecifier) -> Option<&ModuleData> {
+    self.module_data.get(specifier)
+  }
+
+  pub fn get_mut(&mut self, specifier: &ModuleSpecifier) -> &mut ModuleData {
     let next_id = self.module_data.len();
     self
       .module_data
@@ -78,6 +82,43 @@ impl ModuleDataCollection {
         re_exports: Default::default(),
         text_changes: Default::default(),
       })
+  }
+
+  pub fn get_export_names(&self, specifier: &ModuleSpecifier) -> Vec<String> {
+    fn inner<'a>(
+      collection: &'a ModuleDataCollection,
+      specifier: &'a ModuleSpecifier,
+      seen: &mut HashSet<&'a ModuleSpecifier>,
+      result: &mut HashSet<&'a String>,
+    ) {
+      if seen.insert(specifier) {
+        if let Some(module_data) = collection.module_data.get(&specifier) {
+          result.extend(module_data.exports.iter().map(|e| e.export_name()));
+          for re_export in &module_data.re_exports {
+            match &re_export.name {
+              ReExportName::Named(name) => {
+                result.insert(name.export_name());
+              }
+              ReExportName::Namespace(namespace) => {
+                result.insert(namespace);
+              }
+              ReExportName::All => {
+                inner(collection, &re_export.specifier, seen, result);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    let mut result = HashSet::new();
+    inner(self, specifier, &mut HashSet::new(), &mut result);
+    let mut result = result
+      .into_iter()
+      .map(ToOwned::to_owned)
+      .collect::<Vec<_>>();
+    result.sort_unstable();
+    result
   }
 }
 
@@ -105,10 +146,12 @@ impl ExportName {
 enum ReExportName {
   Named(ExportName),
   Namespace(String),
+  All,
 }
 
 struct ReExport {
   name: ReExportName,
+  specifier: ModuleSpecifier,
   module_id: ModuleId,
 }
 
@@ -187,26 +230,14 @@ pub fn pack(
   let mut final_text = String::new();
   for (specifier, module) in &ordered_specifiers {
     if let deno_graph::Module::Esm(_) = module {
-      let module_data = context.module_data.get(specifier);
+      let module_data = context.module_data.get_mut(specifier);
       if module_data.exports.is_empty() {
         continue;
       }
       final_text
         .push_str(&format!("const {} = {{\n", module_data.id.to_code_string()));
-      for export in &module_data.exports {
-        final_text
-          .push_str(&format!("  {}: undefined,\n", export.export_name()));
-      }
-      for re_export in &module_data.re_exports {
-        match &re_export.name {
-          ReExportName::Named(name) => {
-            final_text
-              .push_str(&format!("  {}: undefined,\n", name.export_name()));
-          }
-          ReExportName::Namespace(_) => {
-            todo!();
-          }
-        }
+      for name in context.module_data.get_export_names(specifier) {
+        final_text.push_str(&format!("  {}: undefined,\n", name));
       }
       final_text.push_str("};\n");
     }
@@ -215,7 +246,7 @@ pub fn pack(
   let root_dir = get_root_dir(ordered_specifiers.iter().map(|(s, _)| *s));
   for (specifier, module) in &ordered_specifiers {
     if let deno_graph::Module::Json(json) = module {
-      let module_data = context.module_data.get(specifier);
+      let module_data = context.module_data.get_mut(specifier);
       if !final_text.is_empty() {
         final_text.push('\n');
       }
@@ -242,7 +273,7 @@ pub fn pack(
   for (specifier, module) in ordered_specifiers.iter().rev() {
     if let deno_graph::Module::Esm(esm) = module {
       let source = &esm.source;
-      let module_data = context.module_data.get(specifier);
+      let module_data = context.module_data.get(specifier).unwrap();
       // todo: don't clone
       let module_text =
         apply_text_changes(source, module_data.text_changes.clone());
@@ -279,6 +310,9 @@ pub fn pack(
             final_text.push_str(&format!("{}\n", module_text));
           }
           let code_string = module_data.id.to_code_string();
+          let mut export_names = HashSet::with_capacity(
+            module_data.exports.len() + module_data.re_exports.len(),
+          );
           for export in &module_data.exports {
             final_text.push_str(&format!(
               "Object.defineProperty({}, \"{}\", {{ get: () => {} }});\n",
@@ -286,6 +320,7 @@ pub fn pack(
               export.export_name(),
               export.local_name
             ));
+            export_names.insert(export.export_name());
           }
           for re_export in &module_data.re_exports {
             match &re_export.name {
@@ -297,9 +332,30 @@ pub fn pack(
                   re_export.module_id.to_code_string(),
                   name.local_name
                 ));
+                export_names.insert(name.export_name());
               }
               ReExportName::Namespace(_) => {
                 todo!();
+              }
+              ReExportName::All => {
+                // handle these when all done
+              }
+            }
+          }
+          for re_export in &module_data.re_exports {
+            if matches!(re_export.name, ReExportName::All) {
+              let re_export_names =
+                context.module_data.get_export_names(&re_export.specifier);
+              for name in &re_export_names {
+                if !export_names.contains(&name) {
+                  final_text.push_str(&format!(
+                  "Object.defineProperty({}, \"{}\", {{ get: () => {}.{} }});\n",
+                  code_string,
+                  name,
+                  re_export.module_id.to_code_string(),
+                  name
+                ));
+                }
               }
             }
           }
@@ -330,7 +386,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
         ModuleItem::Stmt(stmt) => {
           let top_level_await = stmt.to::<AwaitExpr>();
           if top_level_await.is_some() {
-            context.module_data.get(module_specifier).has_tla = true;
+            context.module_data.get_mut(module_specifier).has_tla = true;
           }
         }
         ModuleItem::ModuleDecl(decl) => match decl {
@@ -346,7 +402,8 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
               false,
             ) {
               Some(dep_specifier) => {
-                let dep_module_id = context.module_data.get(&dep_specifier).id;
+                let dep_module_id =
+                  context.module_data.get_mut(&dep_specifier).id;
                 for import_specifier in &import.specifiers {
                   match import_specifier {
                     ImportSpecifier::Default(default_specifier) => {
@@ -425,7 +482,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
             };
             match maybe_ident {
               Some(ident) => {
-                context.module_data.get(module_specifier).exports.push(
+                context.module_data.get_mut(module_specifier).exports.push(
                   ExportName {
                     export_name: Some("default".to_string()),
                     local_name: replace_ids
@@ -436,7 +493,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                 );
               }
               None => {
-                context.module_data.get(module_specifier).exports.push(
+                context.module_data.get_mut(module_specifier).exports.push(
                   ExportName {
                     export_name: Some("default".to_string()),
                     local_name: "__pack_default__".to_string(),
@@ -446,7 +503,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
             }
           }
           ModuleDecl::ExportDefaultExpr(_) => {
-            context.module_data.get(module_specifier).exports.push(
+            context.module_data.get_mut(module_specifier).exports.push(
               ExportName {
                 export_name: Some("default".to_string()),
                 local_name: "__pack_default__".to_string(),
@@ -459,7 +516,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
             }
             match &decl.decl {
               Decl::Class(decl) => {
-                context.module_data.get(module_specifier).exports.push(
+                context.module_data.get_mut(module_specifier).exports.push(
                   ExportName {
                     export_name: None,
                     local_name: decl.ident.sym().to_string(),
@@ -467,7 +524,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                 );
               }
               Decl::Fn(decl) => {
-                context.module_data.get(module_specifier).exports.push(
+                context.module_data.get_mut(module_specifier).exports.push(
                   ExportName {
                     export_name: None,
                     local_name: decl.ident.sym().to_string(),
@@ -480,12 +537,14 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                     Pat::Array(_) => todo!(),
                     Pat::Assign(_) => todo!(),
                     Pat::Ident(ident) => {
-                      context.module_data.get(module_specifier).exports.push(
-                        ExportName {
+                      context
+                        .module_data
+                        .get_mut(module_specifier)
+                        .exports
+                        .push(ExportName {
                           export_name: None,
                           local_name: ident.id.sym().to_string(),
-                        },
-                      );
+                        });
                     }
                     Pat::Rest(_) => todo!(),
                     Pat::Object(_) => todo!(),
@@ -495,7 +554,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                 }
               }
               Decl::TsEnum(decl) => {
-                context.module_data.get(module_specifier).exports.push(
+                context.module_data.get_mut(module_specifier).exports.push(
                   ExportName {
                     export_name: None,
                     local_name: decl.id.sym().to_string(),
@@ -505,7 +564,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
               Decl::TsModule(decl) => {
                 if let TsModuleName::Ident(id) = &decl.id {
                   // the namespace will be exported as the first id
-                  context.module_data.get(module_specifier).exports.push(
+                  context.module_data.get_mut(module_specifier).exports.push(
                     ExportName {
                       export_name: None,
                       local_name: id.sym().to_string(),
@@ -523,9 +582,10 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                 module_specifier,
                 false,
               ) {
-                Some(dep) => {
-                  let dep_id = context.module_data.get(&dep).id;
-                  let module_data = context.module_data.get(module_specifier);
+                Some(dep_specifier) => {
+                  let dep_id = context.module_data.get_mut(&dep_specifier).id;
+                  let module_data =
+                    context.module_data.get_mut(module_specifier);
                   for export_specifier in &decl.specifiers {
                     match export_specifier {
                       ExportSpecifier::Default(_) => {
@@ -549,6 +609,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                               ModuleExportName::Str(_) => todo!(),
                             },
                           }),
+                          specifier: dep_specifier.clone(),
                           module_id: dep_id,
                         })
                       }
@@ -560,6 +621,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                             }
                             ModuleExportName::Str(_) => todo!(),
                           }),
+                          specifier: dep_specifier.clone(),
                           module_id: dep_id,
                         })
                       }
@@ -572,7 +634,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
               }
             } else {
               // no specifier
-              let module_data = context.module_data.get(module_specifier);
+              let module_data = context.module_data.get_mut(module_specifier);
               for export_specifier in &decl.specifiers {
                 match export_specifier {
                   ExportSpecifier::Named(named) => {
@@ -615,7 +677,26 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
               }
             }
           }
-          ModuleDecl::ExportAll(export_all) => {}
+          ModuleDecl::ExportAll(export_all) => {
+            match context.graph.resolve_dependency(
+              export_all.src.value(),
+              module_specifier,
+              false,
+            ) {
+              Some(dep_specifier) => {
+                let dep_id = context.module_data.get_mut(&dep_specifier).id;
+                let module_data = context.module_data.get_mut(module_specifier);
+                module_data.re_exports.push(ReExport {
+                  name: ReExportName::All,
+                  specifier: dep_specifier,
+                  module_id: dep_id,
+                });
+              }
+              None => {
+                todo!();
+              }
+            }
+          }
           ModuleDecl::TsImportEquals(_)
           | ModuleDecl::TsExportAssignment(_)
           | ModuleDecl::TsNamespaceExport(_) => {}
@@ -623,7 +704,7 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
       }
     }
 
-    let module_data = context.module_data.get(module_specifier);
+    let module_data = context.module_data.get_mut(module_specifier);
     // replace all the identifiers
     let mut collector = TextChangeCollector {
       module_data: module_data,

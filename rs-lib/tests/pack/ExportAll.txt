@@ -1,0 +1,47 @@
+# mod.ts
+import { myValue1, myValue2 } from "./a.js";
+
+console.log(myValue1);
+console.log(myValue2);
+
+# a.js
+export * from "./b.js";
+
+export const myValue1 = 1;
+
+# b.js
+// it should not re-export this
+export const myValue1 = 2;
+export const myValue2 = 3;
+
+# output.js
+const pack0 = {
+  myValue1: undefined,
+  myValue2: undefined,
+};
+const pack2 = {
+  myValue1: undefined,
+  myValue2: undefined,
+};
+
+// b.js
+(() => {
+// it should not re-export this
+const myValue1 = 2;
+const myValue2 = 3;
+Object.defineProperty(pack2, "myValue1", { get: () => myValue1 });
+Object.defineProperty(pack2, "myValue2", { get: () => myValue2 });
+})();
+
+// a.js
+(() => {
+export * from "./b.js";
+
+const myValue1 = 1;
+Object.defineProperty(pack0, "myValue1", { get: () => myValue1 });
+Object.defineProperty(pack0, "myValue2", { get: () => pack2.myValue2 });
+})();
+
+// mod.ts
+console.log(pack0.myValue1);
+console.log(pack0.myValue2);
