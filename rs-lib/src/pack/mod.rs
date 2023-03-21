@@ -1013,7 +1013,11 @@ impl<'a> TextChangeCollector<'a> {
       }
       Node::TsAsExpr(expr) => {
         self.remove_range(SourceRange::new(expr.expr.end(), expr.end()));
-
+        // keep going into the descendant expressions
+        self.visit(expr.expr.into());
+      }
+      Node::TsSatisfiesExpr(expr) => {
+        self.remove_range(SourceRange::new(expr.expr.end(), expr.end()));
         // keep going into the descendant expressions
         self.visit(expr.expr.into());
       }
@@ -1066,7 +1070,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::TsPropertySignature(_)
       | Node::TsQualifiedName(_)
       | Node::TsRestType(_)
-      | Node::TsSatisfiesExpr(_)
       | Node::TsSetterSignature(_)
       | Node::TsThisType(_)
       | Node::TsTplLitType(_)

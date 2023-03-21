@@ -2,7 +2,8 @@
 const test: string = 5;
 
 function test<T>(test: string): string {
-  return (5 as 5) as string;
+  const test = 5 satisfies number;
+  return (test as 5) as string;
 }
 
 @decs<T>()
@@ -25,7 +26,8 @@ class Test<T> implements Other extends Other2<T> {
 const test = 5;
 
 function test(test) {
-  return (5);
+  const test = 5;
+  return (test);
 }
 
 @decs()
