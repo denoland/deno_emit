@@ -1013,12 +1013,28 @@ impl<'a> TextChangeCollector<'a> {
       }
       Node::TsAsExpr(expr) => {
         self.remove_range(SourceRange::new(expr.expr.end(), expr.end()));
-        // keep going into the descendant expressions
+        self.visit(expr.expr.into());
+      }
+      Node::TsConstAssertion(expr) => {
+        self.remove_range_with_previous_whitespace(SourceRange::new(
+          expr.expr.end(),
+          expr.end(),
+        ));
+        self.visit(expr.expr.into());
+      }
+      Node::TsNonNullExpr(expr) => {
+        self.remove_range(SourceRange::new(expr.expr.end(), expr.end()));
         self.visit(expr.expr.into());
       }
       Node::TsSatisfiesExpr(expr) => {
         self.remove_range(SourceRange::new(expr.expr.end(), expr.end()));
-        // keep going into the descendant expressions
+        self.visit(expr.expr.into());
+      }
+      Node::TsTypeAssertion(expr) => {
+        self.remove_range_with_next_whitespace(SourceRange::new(
+          expr.start(),
+          expr.expr.start(),
+        ));
         self.visit(expr.expr.into());
       }
       Node::TsParamProp(prop) => {
@@ -1034,13 +1050,19 @@ impl<'a> TextChangeCollector<'a> {
         }
         self.visit_children(prop.into());
       }
+      Node::TsInstantiation(expr) => {
+        self.remove_range_with_next_whitespace(SourceRange::new(
+          expr.expr.end(),
+          expr.end(),
+        ));
+        self.visit(expr.expr.into());
+      }
       Node::TsNamespaceDecl(_) => {
         // todo
       }
       Node::TsArrayType(_)
       | Node::TsCallSignatureDecl(_)
       | Node::TsConditionalType(_)
-      | Node::TsConstAssertion(_)
       | Node::TsConstructSignatureDecl(_)
       | Node::TsConstructorType(_)
       | Node::TsEnumMember(_)
@@ -1054,7 +1076,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::TsIndexSignature(_)
       | Node::TsIndexedAccessType(_)
       | Node::TsInferType(_)
-      | Node::TsInstantiation(_)
       | Node::TsInterfaceBody(_)
       | Node::TsIntersectionType(_)
       | Node::TsKeywordType(_)
@@ -1064,7 +1085,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::TsModuleBlock(_)
       | Node::TsModuleDecl(_)
       | Node::TsNamespaceExportDecl(_)
-      | Node::TsNonNullExpr(_)
       | Node::TsOptionalType(_)
       | Node::TsParenthesizedType(_)
       | Node::TsPropertySignature(_)
@@ -1076,7 +1096,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::TsTupleElement(_)
       | Node::TsTupleType(_)
       | Node::TsTypeAnn(_)
-      | Node::TsTypeAssertion(_)
       | Node::TsTypeLit(_)
       | Node::TsTypeOperator(_)
       | Node::TsTypeParam(_)

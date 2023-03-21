@@ -2,7 +2,9 @@
 const test: string = 5;
 
 function test<T>(test: string): string {
-  const test = 5 satisfies number;
+  const test = <test>5 satisfies number as const;
+  const asdf = obj!.test;
+  f<x>, g<y>;
   return (test as 5) as string;
 }
 
@@ -27,6 +29,8 @@ const test = 5;
 
 function test(test) {
   const test = 5;
+  const asdf = obj.test;
+  f, g;
   return (test);
 }
 
