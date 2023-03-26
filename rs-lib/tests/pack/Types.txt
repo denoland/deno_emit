@@ -9,7 +9,7 @@ function test<T>(test: string): string {
 }
 
 @decs<T>()
-class Test<T> implements Other extends Other2<T> {
+export class Test<T> implements Other extends Other2<T> {
   private a: string;
   protected b: string;
   public c: number;
@@ -30,35 +30,35 @@ class Test<T> implements Other extends Other2<T> {
 
 # output.js
 // mod.ts
+var __decorate = this && this.__decorate || function(decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
 const test = 5;
-
 function test(test) {
-  const test = 5;
-  const asdf = obj.test;
-  f, g;
-  return (test);
+    const test = 5;
+    const asdf = obj.test;
+    f, g;
+    return test;
 }
-
-@decs()
-class Test extends Other2 {
-  a;
-  b;
-  c;
-  d;
-  e;
-  f;
-  #a;
-  #b;
-  #c;
-  #e;
-  #f;
-
-  constructor(a, b, c, d, e = 2) {
-    super();
-this.a = a;
-this.b = b;
-this.c = c;
-this.d = d;
-this.e = e;
-  }
-}
+export let Test = class Test extends Other2 {
+    a;
+    b;
+    c;
+    d;
+    e;
+    f;
+    #a;
+    #b;
+    #c;
+    #e;
+    #f;
+    constructor(a, b, c, d, e = 2){
+        super();
+    }
+};
+Test = __decorate([
+    decs()
+], Test);

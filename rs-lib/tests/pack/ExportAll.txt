@@ -40,7 +40,6 @@ const pack2 = {
 // it should not re-export this
 const myValue1 = 2;
 const myValue2 = 3;
-
 var Test;
 (function(Test) {
     Test[Test["Value"] = 1] = "Value";

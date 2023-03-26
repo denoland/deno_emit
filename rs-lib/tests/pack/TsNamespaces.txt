@@ -3,9 +3,6 @@ import { a } from "./a.js";
 
 namespace Testing.ThisOut {
   export const b = 3;
-}
-
-namespace Testing.ThisOut {
   export enum Test {
     Value1 = a,
     Value2 = b,
@@ -13,10 +10,42 @@ namespace Testing.ThisOut {
 }
 
 namespace Testing.ThisOut {
-  console.log(Test.Value1);
+  console.log(Testing.Test.Value1);
 }
+
+console.log(Testing.ThisOut.Test.Value2);
 
 # a.js
 export const a = 2;
 
 # output.js
+const pack0 = {
+  a: undefined,
+};
+
+// a.js
+(() => {
+const a = 2;
+Object.defineProperty(pack0, "a", { get: () => a });
+})();
+
+// mod.ts
+var Testing;
+(function(Testing) {
+    let ThisOut;
+    (function(ThisOut) {
+        var b = ThisOut.b = 3;
+        let Test;
+        (function(Test) {
+            Test[Test["Value1"] = pack0.a] = "Value1";
+            Test[Test["Value2"] = b] = "Value2";
+        })(Test = ThisOut.Test || (ThisOut.Test = {}));
+    })(ThisOut = Testing.ThisOut || (Testing.ThisOut = {}));
+})(Testing || (Testing = {}));
+(function(Testing1) {
+    let ThisOut;
+    (function(ThisOut) {
+        console.log(Testing.Test.Value1);
+    })(ThisOut = Testing1.ThisOut || (Testing1.ThisOut = {}));
+})(Testing || (Testing = {}));
+console.log(Testing.ThisOut.Test.Value2);

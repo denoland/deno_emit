@@ -293,6 +293,12 @@ pub fn pack(
       // todo: don't clone
       let module_text =
         apply_text_changes(source, module_data.text_changes.clone());
+      let module_text = if module_data.requires_transpile {
+        // todo: warn here and surface parsing errors
+        emit_script(&module_text)
+      } else {
+        module_text
+      };
       let module_text = module_text.trim();
       if !module_text.is_empty()
         || !module_data.exports.is_empty()
@@ -1102,45 +1108,13 @@ impl<'a> TextChangeCollector<'a> {
       Node::Constructor(ctor) => {
         self.visit_children(ctor.into());
 
-        // emit the parameter properties
-        for param in &ctor.params {
-          if let ParamOrTsParamProp::TsParamProp(param) = param {
-            if let Some(body) = &ctor.body {
-              let insert_pos = if let Some(Stmt::Expr(ExprStmt {
-                expr:
-                  Expr::Call(CallExpr {
-                    callee: Callee::Super(_),
-                    ..
-                  }),
-                ..
-              })) = body.stmts.get(0)
-              {
-                // put it after the super call
-                body.stmts[0].end()
-              } else {
-                body.start() + 1 // insert after the opening brace
-              }
-              .as_byte_index(self.file_start);
-              self.module_data.text_changes.push(TextChange {
-                range: insert_pos..insert_pos,
-                new_text: format!(
-                  "\nthis.{0} = {0};",
-                  match param.param {
-                    TsParamPropParam::Assign(assign) => {
-                      match &assign.left {
-                        Pat::Ident(ident) => ident.id.sym(),
-                        pat => pat.text_fast(self.module),
-                      }
-                    }
-                    TsParamPropParam::Ident(ident) => {
-                      let text: &str = ident.id.sym();
-                      text
-                    }
-                  }
-                ),
-              });
-            }
-          }
+        // check for any parameter properties
+        let has_param_props = ctor
+          .params
+          .iter()
+          .any(|p| matches!(p, ParamOrTsParamProp::TsParamProp(_)));
+        if has_param_props {
+          self.module_data.requires_transpile = true;
         }
       }
       Node::VarDecl(decl) => {
@@ -1253,6 +1227,7 @@ impl<'a> TextChangeCollector<'a> {
 
       Node::TsEnumDecl(_) => {
         self.module_data.requires_transpile = true;
+        self.visit_children(node);
       }
       Node::TsEnumMember(member) => self.visit_children(member.into()),
       Node::TsAsExpr(expr) => {
@@ -1397,8 +1372,10 @@ fn get_root_dir<'a>(
 }
 
 fn emit_script(file_text: &str) -> String {
+  // todo: skip emitting jsx
+
   // use swc for now because emitting enums is actually quite complicated
-  deno_ast::parse_script(ParseParams {
+  deno_ast::parse_module(ParseParams {
     specifier: "file:///mod.ts".to_string(),
     text_info: SourceTextInfo::new(file_text.into()),
     media_type: MediaType::TypeScript,

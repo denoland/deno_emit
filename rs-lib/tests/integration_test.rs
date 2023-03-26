@@ -22,6 +22,7 @@ async fn test_specs() {
 
     let result = builder.pack().await.unwrap();
     // uncomment to overwrite
+    // let mut spec = spec;
     // spec.output_file.text = result.clone();
     // std::fs::write(&test_file_path, spec.emit()).unwrap();
     assert_eq!(

@@ -26,5 +26,4 @@ var Testing;
 (function(Testing) {
     Testing[Testing["Value"] = pack0.a] = "Value";
 })(Testing || (Testing = {}));
-
 console.log(Testing.Value);
