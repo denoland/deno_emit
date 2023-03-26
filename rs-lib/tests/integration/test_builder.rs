@@ -70,7 +70,7 @@ impl TestBuilder {
   }
 }
 
-// todo: move down into deno_ast because this is used in dnt too
+// todo: move down into deno_graph because this is used in dnt too
 
 #[derive(Default)]
 pub struct ScopeAnalysisParser;

@@ -32,16 +32,22 @@ use deno_ast::view::ModuleDecl;
 use deno_ast::view::ModuleExportName;
 use deno_ast::view::ModuleItem;
 use deno_ast::view::Node;
+use deno_ast::view::NodeKind;
 use deno_ast::view::NodeTrait;
+use deno_ast::view::ObjectPatProp;
 use deno_ast::view::ParamOrTsParamProp;
 use deno_ast::view::Pat;
+use deno_ast::view::PropName;
 use deno_ast::view::Stmt;
 use deno_ast::view::TsModuleDecl;
 use deno_ast::view::TsModuleName;
 use deno_ast::view::TsNamespaceBody;
 use deno_ast::view::TsNamespaceDecl;
 use deno_ast::view::TsParamPropParam;
+use deno_ast::view::VarDecl;
+use deno_ast::view::VarDeclKind;
 use deno_ast::Diagnostic;
+use deno_ast::EmitOptions;
 use deno_ast::MediaType;
 use deno_ast::ModuleSpecifier;
 use deno_ast::ParseParams;
@@ -49,6 +55,7 @@ use deno_ast::ParsedSource;
 use deno_ast::SourceRange;
 use deno_ast::SourceRanged;
 use deno_ast::SourceRangedForSpanned;
+use deno_ast::SourceTextInfo;
 use deno_ast::SourceTextInfoProvider;
 use deno_ast::StartSourcePos;
 use deno_ast::TextChange;
@@ -81,6 +88,7 @@ impl ModuleDataCollection {
         exports: Default::default(),
         re_exports: Default::default(),
         text_changes: Default::default(),
+        requires_transpile: false,
       })
   }
 
@@ -161,6 +169,7 @@ struct ModuleData {
   exports: Vec<ExportName>,
   re_exports: Vec<ReExport>,
   text_changes: Vec<TextChange>,
+  requires_transpile: bool,
 }
 
 impl ModuleData {
@@ -168,6 +177,13 @@ impl ModuleData {
     self.text_changes.push(TextChange {
       range,
       new_text: String::new(),
+    })
+  }
+
+  pub fn add_export_name(&mut self, name: String) {
+    self.exports.push(ExportName {
+      local_name: name,
+      export_name: None,
     })
   }
 }
@@ -184,7 +200,6 @@ pub fn pack(
 ) -> Result<String> {
   // TODO
   // - dynamic imports
-  // - `export * from "./module.ts";`
   // - tla
   // - order modules properly (https://v8.dev/features/top-level-await#module-execution-order)
   // - keep remote the same
@@ -231,7 +246,8 @@ pub fn pack(
   for (specifier, module) in &ordered_specifiers {
     if let deno_graph::Module::Esm(_) = module {
       let module_data = context.module_data.get_mut(specifier);
-      if module_data.exports.is_empty() {
+      if module_data.exports.is_empty() || context.graph.roots[0] == **specifier
+      {
         continue;
       }
       final_text
@@ -330,12 +346,19 @@ pub fn pack(
                   code_string,
                   name.export_name(),
                   re_export.module_id.to_code_string(),
-                  name.local_name
+                  name.local_name,
                 ));
                 export_names.insert(name.export_name());
               }
-              ReExportName::Namespace(_) => {
-                todo!();
+              ReExportName::Namespace(name) => {
+                final_text.push_str(&format!(
+                  "Object.defineProperty({}, \"{}\", {{ get: () => {}.{} }});\n",
+                  code_string,
+                  name,
+                  re_export.module_id.to_code_string(),
+                  name,
+                ));
+                export_names.insert(name);
               }
               ReExportName::All => {
                 // handle these when all done
@@ -368,6 +391,30 @@ pub fn pack(
   Ok(final_text)
 }
 
+fn has_function_scoped_node(
+  node: Node,
+  is_match: &impl Fn(Node) -> bool,
+) -> bool {
+  if is_match(node) {
+    return true;
+  }
+  for child in node.children() {
+    if matches!(
+      child.kind(),
+      NodeKind::FnDecl
+        | NodeKind::FnExpr
+        | NodeKind::ArrowExpr
+        | NodeKind::ClassMethod
+    ) {
+      continue;
+    }
+    if has_function_scoped_node(child, is_match) {
+      return true;
+    }
+  }
+  false
+}
+
 fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
   let module_specifier = &esm.specifier;
   let parsed_source = context.parser.parse_module(
@@ -380,13 +427,17 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
   parsed_source.with_view(|program| {
     let mut replace_ids = HashMap::new();
     let module = program.module();
+    let mut found_tla = false;
     // analyze the top level declarations
     for module_item in &module.body {
       match module_item {
         ModuleItem::Stmt(stmt) => {
-          let top_level_await = stmt.to::<AwaitExpr>();
-          if top_level_await.is_some() {
-            context.module_data.get_mut(module_specifier).has_tla = true;
+          if !found_tla
+            && has_function_scoped_node(stmt.into(), &|node| {
+              node.is::<AwaitExpr>()
+            })
+          {
+            found_tla = true;
           }
         }
         ModuleItem::ModuleDecl(decl) => match decl {
@@ -462,6 +513,11 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
       }
     }
 
+    {
+      let module_data = context.module_data.get_mut(module_specifier);
+      module_data.has_tla = found_tla;
+    }
+
     // analyze the exports separately after because they rely on knowing
     // the imports regardless of order
     for module_item in &module.body {
@@ -516,6 +572,9 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
             }
             match &decl.decl {
               Decl::Class(decl) => {
+                if decl.declare() {
+                  continue;
+                }
                 context.module_data.get_mut(module_specifier).exports.push(
                   ExportName {
                     export_name: None,
@@ -524,6 +583,9 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                 );
               }
               Decl::Fn(decl) => {
+                if decl.declare() {
+                  continue;
+                }
                 context.module_data.get_mut(module_specifier).exports.push(
                   ExportName {
                     export_name: None,
@@ -532,28 +594,64 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                 );
               }
               Decl::Var(decl) => {
+                if decl.declare() {
+                  continue;
+                }
+                let module_data = context.module_data.get_mut(module_specifier);
                 for decl in &decl.decls {
                   match &decl.name {
                     Pat::Array(_) => todo!(),
                     Pat::Assign(_) => todo!(),
                     Pat::Ident(ident) => {
-                      context
-                        .module_data
-                        .get_mut(module_specifier)
-                        .exports
-                        .push(ExportName {
-                          export_name: None,
-                          local_name: ident.id.sym().to_string(),
-                        });
+                      module_data.add_export_name(ident.id.sym().to_string());
                     }
                     Pat::Rest(_) => todo!(),
-                    Pat::Object(_) => todo!(),
+                    Pat::Object(obj) => {
+                      for prop in &obj.props {
+                        match prop {
+                          ObjectPatProp::KeyValue(kv) => {
+                            match &kv.key {
+                              PropName::Ident(ident) => {
+                                module_data
+                                  .add_export_name(ident.sym().to_string());
+                              }
+                              PropName::Str(_) => todo!(),
+                              PropName::Computed(_)
+                              | PropName::BigInt(_)
+                              | PropName::Num(_) => {
+                                // ignore
+                              }
+                            }
+                          }
+                          ObjectPatProp::Assign(assign_prop) => {
+                            module_data.add_export_name(
+                              assign_prop.key.sym().to_string(),
+                            );
+                          }
+                          ObjectPatProp::Rest(rest) => match &rest.arg {
+                            Pat::Ident(ident) => {
+                              module_data
+                                .add_export_name(ident.id.sym().to_string());
+                            }
+                            Pat::Array(_) => todo!(),
+                            Pat::Rest(_) => todo!(),
+                            Pat::Object(_) => todo!(),
+                            Pat::Assign(_) => todo!(),
+                            Pat::Invalid(_) => todo!(),
+                            Pat::Expr(_) => todo!(),
+                          },
+                        }
+                      }
+                    }
                     Pat::Invalid(_) => todo!(),
                     Pat::Expr(_) => todo!(),
                   }
                 }
               }
               Decl::TsEnum(decl) => {
+                if decl.declare() {
+                  continue;
+                }
                 context.module_data.get_mut(module_specifier).exports.push(
                   ExportName {
                     export_name: None,
@@ -562,6 +660,9 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                 );
               }
               Decl::TsModule(decl) => {
+                if decl.declare() {
+                  continue;
+                }
                 if let TsModuleName::Ident(id) = &decl.id {
                   // the namespace will be exported as the first id
                   context.module_data.get_mut(module_specifier).exports.push(
@@ -576,6 +677,9 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
             }
           }
           ModuleDecl::ExportNamed(decl) => {
+            if decl.type_only() {
+              continue;
+            }
             if let Some(src) = &decl.src {
               match context.graph.resolve_dependency(
                 src.value(),
@@ -592,6 +696,9 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
                         todo!(); // what even is this? Maybe some babel thing or I'm not thinking atm
                       }
                       ExportSpecifier::Named(named) => {
+                        if named.is_type_only() {
+                          continue;
+                        }
                         module_data.re_exports.push(ReExport {
                           name: ReExportName::Named(ExportName {
                             export_name: named.exported.as_ref().map(|name| {
@@ -678,6 +785,9 @@ fn analyze_esm_module(esm: &EsmModule, context: &mut Context) -> Result<()> {
             }
           }
           ModuleDecl::ExportAll(export_all) => {
+            if export_all.type_only() {
+              continue;
+            }
             match context.graph.resolve_dependency(
               export_all.src.value(),
               module_specifier,
@@ -772,6 +882,20 @@ impl<'a> TextChangeCollector<'a> {
     );
   }
 
+  pub fn replace_ident_text(&mut self, ident: &Ident, new_text: &str) {
+    if let Node::ObjectLit(_) = ident.parent() {
+      self.module_data.text_changes.push(TextChange {
+        range: ident.range().as_byte_range(self.file_start),
+        new_text: format!("{}: {}", ident.text_fast(self.module), new_text),
+      });
+    } else {
+      self.module_data.text_changes.push(TextChange {
+        range: ident.range().as_byte_range(self.file_start),
+        new_text: new_text.to_string(),
+      })
+    }
+  }
+
   pub fn visit_children(&mut self, node: Node) {
     for child in node.children() {
       self.visit(child);
@@ -783,28 +907,41 @@ impl<'a> TextChangeCollector<'a> {
       Node::Ident(ident) => {
         let id = ident.to_id();
         if let Some(text) = self.replace_ids.get(&id) {
-          self.module_data.text_changes.push(TextChange {
-            range: ident.range().as_byte_range(self.file_start),
-            new_text: text.clone(),
-          })
+          self.replace_ident_text(ident, text)
+        } else if ident.optional() {
+          // hack for bug in swc that should be investigated
+          let next_token = ident.range().next_token_fast(self.module).unwrap();
+          if next_token.text_fast(self.module) == "?" {
+            self.remove_token(next_token);
+          } else if ident.text_fast(self.module).contains('?') {
+            self.remove_first_token(ident.range(), "?");
+          } else {
+            debug_assert!(
+              false,
+              "Could not find question token for: {}",
+              ident.text_fast(self.module)
+            );
+          }
         }
       }
       Node::ExportDefaultExpr(expr) => {
-        let default_keyword = expr
-          .tokens_fast(self.module)
-          .iter()
-          .find(|t| t.token == Token::Word(Word::Keyword(Keyword::Default_)))
-          .unwrap();
-        let start = expr.start().as_byte_index(self.file_start);
-        self.module_data.text_changes.push(TextChange {
-          range: start
-            ..default_keyword
-              .next_token_fast(self.module)
-              .unwrap()
-              .start()
-              .as_byte_index(self.file_start),
-          new_text: "const __pack_default__ = ".to_string(),
-        });
+        if !self.is_root_module {
+          let default_keyword = expr
+            .tokens_fast(self.module)
+            .iter()
+            .find(|t| t.token == Token::Word(Word::Keyword(Keyword::Default_)))
+            .unwrap();
+          let start = expr.start().as_byte_index(self.file_start);
+          self.module_data.text_changes.push(TextChange {
+            range: start
+              ..default_keyword
+                .next_token_fast(self.module)
+                .unwrap()
+                .start()
+                .as_byte_index(self.file_start),
+            new_text: "const __pack_default__ = ".to_string(),
+          });
+        }
       }
       Node::ExportDefaultDecl(decl) => {
         if let DefaultDecl::TsInterfaceDecl(_) = &decl.decl {
@@ -888,7 +1025,12 @@ impl<'a> TextChangeCollector<'a> {
           }
         }
       }
-      Node::ImportDecl(_) | Node::NamedExport(_) => {
+      Node::ExportAll(_)
+      | Node::ExportDefaultSpecifier(_)
+      | Node::ExportNamedSpecifier(_)
+      | Node::ExportNamespaceSpecifier(_)
+      | Node::ImportDecl(_)
+      | Node::NamedExport(_) => {
         self.remove_range(node.range());
       }
       Node::Class(class) => {
@@ -935,8 +1077,27 @@ impl<'a> TextChangeCollector<'a> {
           if prop.is_abstract() {
             self.remove_first_token(prop.range(), "abstract");
           }
+          if prop.definite() {
+            self.remove_first_token(prop.range(), "!");
+          }
           self.visit_children(prop.into());
         }
+      }
+      Node::PrivateProp(prop) => {
+        if let Some(accessibility) = prop.accessibility() {
+          let keyword = accessibility_text(accessibility);
+          self.remove_first_token(prop.range(), keyword);
+        }
+        if prop.readonly() {
+          self.remove_first_token(prop.range(), "readonly");
+        }
+        if prop.is_override() {
+          self.remove_first_token(prop.range(), "override");
+        }
+        if prop.definite() {
+          self.remove_first_token(prop.range(), "!");
+        }
+        self.visit_children(prop.into());
       }
       Node::Constructor(ctor) => {
         self.visit_children(ctor.into());
@@ -982,6 +1143,13 @@ impl<'a> TextChangeCollector<'a> {
           }
         }
       }
+      Node::VarDecl(decl) => {
+        if decl.declare() {
+          self.remove_range_with_previous_whitespace(decl.range());
+        } else {
+          self.visit_children(node);
+        }
+      }
       Node::ArrayLit(_)
       | Node::ArrayPat(_)
       | Node::ArrowExpr(_)
@@ -1009,10 +1177,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::Decorator(_)
       | Node::DoWhileStmt(_)
       | Node::EmptyStmt(_)
-      | Node::ExportAll(_)
-      | Node::ExportDefaultSpecifier(_)
-      | Node::ExportNamedSpecifier(_)
-      | Node::ExportNamespaceSpecifier(_)
       | Node::ExprOrSpread(_)
       | Node::ExprStmt(_)
       | Node::FnDecl(_)
@@ -1059,7 +1223,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::ParenExpr(_)
       | Node::PrivateMethod(_)
       | Node::PrivateName(_)
-      | Node::PrivateProp(_)
       | Node::Regex(_)
       | Node::RestPat(_)
       | Node::ReturnStmt(_)
@@ -1081,7 +1244,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::TryStmt(_)
       | Node::UnaryExpr(_)
       | Node::UpdateExpr(_)
-      | Node::VarDecl(_)
       | Node::VarDeclarator(_)
       | Node::WhileStmt(_)
       | Node::WithStmt(_)
@@ -1090,8 +1252,9 @@ impl<'a> TextChangeCollector<'a> {
       }
 
       Node::TsEnumDecl(_) => {
-        // todo...
+        self.module_data.requires_transpile = true;
       }
+      Node::TsEnumMember(member) => self.visit_children(member.into()),
       Node::TsAsExpr(expr) => {
         self.remove_range(SourceRange::new(expr.expr.end(), expr.end()));
         self.visit(expr.expr.into());
@@ -1138,15 +1301,23 @@ impl<'a> TextChangeCollector<'a> {
         ));
         self.visit(expr.expr.into());
       }
-      Node::TsNamespaceDecl(_) => {
-        // todo
+      Node::TsNamespaceDecl(decl) => {
+        self.module_data.requires_transpile = true;
+        self.visit_children(decl.into());
+      }
+      Node::TsModuleBlock(decl) => {
+        self.module_data.requires_transpile = true;
+        self.visit_children(decl.into());
+      }
+      Node::TsModuleDecl(decl) => {
+        self.module_data.requires_transpile = true;
+        self.visit_children(decl.into());
       }
       Node::TsArrayType(_)
       | Node::TsCallSignatureDecl(_)
       | Node::TsConditionalType(_)
       | Node::TsConstructSignatureDecl(_)
       | Node::TsConstructorType(_)
-      | Node::TsEnumMember(_)
       | Node::TsExportAssignment(_)
       | Node::TsExprWithTypeArgs(_)
       | Node::TsExternalModuleRef(_)
@@ -1163,8 +1334,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::TsLitType(_)
       | Node::TsMappedType(_)
       | Node::TsMethodSignature(_)
-      | Node::TsModuleBlock(_)
-      | Node::TsModuleDecl(_)
       | Node::TsNamespaceExportDecl(_)
       | Node::TsOptionalType(_)
       | Node::TsParenthesizedType(_)
@@ -1225,4 +1394,24 @@ fn get_root_dir<'a>(
   } else {
     root
   }
+}
+
+fn emit_script(file_text: &str) -> String {
+  // use swc for now because emitting enums is actually quite complicated
+  deno_ast::parse_script(ParseParams {
+    specifier: "file:///mod.ts".to_string(),
+    text_info: SourceTextInfo::new(file_text.into()),
+    media_type: MediaType::TypeScript,
+    capture_tokens: false,
+    scope_analysis: false,
+    maybe_syntax: None,
+  })
+  .unwrap()
+  .transpile(&EmitOptions {
+    source_map: false,
+    inline_source_map: false,
+    ..Default::default()
+  })
+  .unwrap()
+  .text
 }

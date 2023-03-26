@@ -1,0 +1,22 @@
+# mod.ts
+import { a } from "./a.js";
+
+namespace Testing.ThisOut {
+  export const b = 3;
+}
+
+namespace Testing.ThisOut {
+  export enum Test {
+    Value1 = a,
+    Value2 = b,
+  }
+}
+
+namespace Testing.ThisOut {
+  console.log(Test.Value1);
+}
+
+# a.js
+export const a = 2;
+
+# output.js

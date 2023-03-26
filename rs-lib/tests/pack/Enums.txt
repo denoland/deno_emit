@@ -1,0 +1,30 @@
+# mod.ts
+import { a } from "./a.js";
+
+enum Testing {
+  Value = a,
+}
+
+console.log(Testing.Value);
+
+# a.js
+export const a = 2;
+
+# output.js
+const pack0 = {
+  a: undefined,
+};
+
+// a.js
+(() => {
+const a = 2;
+Object.defineProperty(pack0, "a", { get: () => a });
+})();
+
+// mod.ts
+var Testing;
+(function(Testing) {
+    Testing[Testing["Value"] = pack0.a] = "Value";
+})(Testing || (Testing = {}));
+
+console.log(Testing.Value);

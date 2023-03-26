@@ -21,6 +21,9 @@ async fn test_specs() {
     });
 
     let result = builder.pack().await.unwrap();
+    // uncomment to overwrite
+    // spec.output_file.text = result.clone();
+    // std::fs::write(&test_file_path, spec.emit()).unwrap();
     assert_eq!(
       result,
       spec.output_file.text,
@@ -35,9 +38,27 @@ struct Spec {
   output_file: File,
 }
 
+impl Spec {
+  pub fn emit(&self) -> String {
+    let mut text = String::new();
+    for file in &self.files {
+      text.push_str(&file.emit());
+      text.push('\n');
+    }
+    text.push_str(&self.output_file.emit());
+    text
+  }
+}
+
 struct File {
   specifier: String,
   text: String,
+}
+
+impl File {
+  pub fn emit(&self) -> String {
+    format!("# {}\n{}", self.specifier, self.text)
+  }
 }
 
 fn get_specs_in_dir(path: &Path) -> Vec<(PathBuf, Spec)> {

@@ -15,10 +15,15 @@ class Test<T> implements Other extends Other2<T> {
   public c: number;
   abstract d: number;
   readonly e: number;
-  override f: number;
+  override f!: number;
   declare g: number;
+  private #a: string;
+  protected #b: string;
+  public #c: number;
+  readonly #e: number;
+  override #f!: number;
 
-  constructor(public a: string, protected b: number, private c, readonly d, override e: number = 2) {
+  constructor(public a: string, protected b: number, private c, readonly d?: string, override e: number = 2) {
     super();
   }
 }
@@ -42,6 +47,11 @@ class Test extends Other2 {
   d;
   e;
   f;
+  #a;
+  #b;
+  #c;
+  #e;
+  #f;
 
   constructor(a, b, c, d, e = 2) {
     super();
