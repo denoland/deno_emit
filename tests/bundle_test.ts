@@ -1,5 +1,10 @@
 // Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
-import { assertStringIncludes } from "https://deno.land/std@0.182.0/testing/asserts.ts";
+import {
+  assert,
+  assertEquals,
+  assertExists,
+  assertStringIncludes,
+} from "https://deno.land/std@0.182.0/testing/asserts.ts";
 import { resolveFixture, testBundle } from "./utils.ts";
 
 // FIXME: This repeats the test below. Consider supporting URLs without wrapping
@@ -50,6 +55,85 @@ Deno.test({
       result.code,
       String
         .raw`const __default = JSON.parse("{\n  \"key\": \"a value with newline\\n, \\\"double quotes\\\", 'single quotes', and ${jsInterpolation}\"\n}");`,
+    );
+  }),
+});
+
+Deno.test({
+  name: "inline source maps are enabled by default",
+  fn: testBundle(resolveFixture("mod.ts"), undefined, ({ result }) => {
+    assertEquals(result.map, undefined);
+    assert(
+      result.code.split("\n").at(-2)?.startsWith(
+        "//# sourceMappingURL=data:application/json;base64,",
+      ),
+    );
+  }),
+});
+
+Deno.test({
+  name: "setting inlineSourceMap to true produces inline source maps",
+  fn: testBundle(resolveFixture("mod.ts"), {
+    compilerOptions: {
+      inlineSourceMap: true,
+    },
+  }, ({ result }) => {
+    assertEquals(result.map, undefined);
+    assert(
+      result.code.split("\n").at(-2)?.startsWith(
+        "//# sourceMappingURL=data:application/json;base64,",
+      ),
+    );
+  }),
+});
+
+Deno.test({
+  name: "setting inlineSourceMap does not produce any source maps",
+  fn: testBundle(resolveFixture("mod.ts"), {
+    compilerOptions: {
+      inlineSourceMap: false,
+    },
+  }, ({ result }) => {
+    assertEquals(result.map, undefined);
+    assert(
+      !result.code.includes(
+        "//# sourceMappingURL=data:application/json;base64,",
+      ),
+    );
+  }),
+});
+
+Deno.test({
+  name:
+    "setting sourceMap to true is not enough to produce external source maps as inline takes precedence",
+  fn: testBundle(resolveFixture("mod.ts"), {
+    compilerOptions: {
+      inlineSourceMap: false,
+    },
+  }, ({ result }) => {
+    assertEquals(result.map, undefined);
+    assert(
+      !result.code.includes(
+        "//# sourceMappingURL=data:application/json;base64,",
+      ),
+    );
+  }),
+});
+
+Deno.test({
+  name:
+    "setting sourceMap to true and inlineSourceMap to false produces external source maps",
+  fn: testBundle(resolveFixture("mod.ts"), {
+    compilerOptions: {
+      sourceMap: true,
+      inlineSourceMap: false,
+    },
+  }, ({ result }) => {
+    assertExists(result.map);
+    assert(
+      !result.code.includes(
+        "//# sourceMappingURL=data:application/json;base64,",
+      ),
     );
   }),
 });

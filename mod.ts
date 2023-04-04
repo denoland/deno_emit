@@ -146,6 +146,8 @@ export async function bundle(
     cacheSetting,
     cacheRoot,
     allowRemote,
+    type,
+    compilerOptions,
   } = options;
   let bundleLoad = load;
   if (!bundleLoad) {
@@ -154,13 +156,17 @@ export async function bundle(
   }
   root = root instanceof URL ? root : toFileUrl(resolve(root));
   const { bundle: jsBundle } = await instantiate();
-  return jsBundle(
+  const result = await jsBundle(
     root.toString(),
     bundleLoad,
-    JSON.stringify(imports),
-    undefined,
-    undefined,
+    type,
+    imports,
+    compilerOptions,
   );
+  return {
+    code: result.code,
+    map: result.maybe_map ?? undefined,
+  };
 }
 
 /** Transpile TypeScript (or JavaScript) into JavaScript, returning a promise
