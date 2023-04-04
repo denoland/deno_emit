@@ -1,0 +1,20 @@
+{
+  "https://deno.land/std@0.140.0/_util/assert.ts": "nhMTTXGO1bgNtQ_bGZFJE0b7hWs.js",
+  "https://deno.land/std@0.140.0/_util/os.ts": "ebsv4XtKEF8sxrDsnkLX8K9VdOA.js",
+  "https://deno.land/std@0.140.0/bytes/bytes_list.ts": "p5wE1hCF6dGYMZ41YnIQs2go2is.js",
+  "https://deno.land/std@0.140.0/bytes/equals.ts": "jO4Cj24EIKVTiTvdPctAVhckzgg.js",
+  "https://deno.land/std@0.140.0/bytes/mod.ts": "WStdDhyHbKYy_C9CJ39RDks1VaY.js",
+  "https://deno.land/std@0.140.0/examples/chat/server.ts": "VR9N5EtRGYTL6BL2wtaFnqW-AuA.js",
+  "https://deno.land/std@0.140.0/io/buffer.ts": "npEsX-46oQUgZNw2Jkxv5i4eWDM.js",
+  "https://deno.land/std@0.140.0/io/types.d.ts": "7HctcYJMo9RPESb8_8SnGpYMx1U.js",
+  "https://deno.land/std@0.140.0/path/_constants.ts": "WzxVr2Q8XtUlLvHc6jsTVQR8Mnc.js",
+  "https://deno.land/std@0.140.0/path/_interface.ts": "wme9EIsCB7sfOz5qC_CSLRYajRk.js",
+  "https://deno.land/std@0.140.0/path/_util.ts": "7VWYTDioIHKQJaGRjtUtSbiHVG8.js",
+  "https://deno.land/std@0.140.0/path/common.ts": "WKh_-mE6UYta1pB11lfX_WOvFQ8.js",
+  "https://deno.land/std@0.140.0/path/glob.ts": "6asWNnLz5gIIvWCigeWDpbWva1Y.js",
+  "https://deno.land/std@0.140.0/path/mod.ts": "VUHr_YUyq8otV9YiIbexaSOfQCs.js",
+  "https://deno.land/std@0.140.0/path/posix.ts": "kWDlQkpYLFWxtJdAejga3vZCeeM.js",
+  "https://deno.land/std@0.140.0/path/separator.ts": "TPW77jtLW1NbcwGdiav4OHTJd6g.js",
+  "https://deno.land/std@0.140.0/path/win32.ts": "WPpXvFGuxwYeU5ay2bDrdG4fV_g.js",
+  "https://deno.land/std@0.140.0/streams/conversion.ts": "ZD3DgFZlCOXbEC8b6k6GmMtkN3g.js"
+}

@@ -4,7 +4,8 @@
       "exclude": [
         "lib",
         "static",
-        "target"
+        "target",
+        "tests/__snapshots__"
       ]
     }
   },
@@ -13,12 +14,14 @@
       "exclude": [
         "lib",
         "static/*.js",
-        "target"
+        "target",
+        "tests/__snapshots__"
       ]
     }
   },
   "tasks": {
     "test": "deno test --allow-read --allow-net --allow-env --allow-write",
+    "update-snapshots": "deno test --allow-read --allow-net --allow-env --allow-write -- --update",
     "build": "deno run -A --unstable https://deno.land/x/wasmbuild@0.8.3/main.ts"
   }
 }
