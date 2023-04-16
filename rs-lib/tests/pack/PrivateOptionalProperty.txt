@@ -1,0 +1,30 @@
+# mod.ts
+// this is from oak
+export class Response {
+  #body?: ResponseBody | ResponseBodyFunction;
+  #bodySet = false;
+  #domResponse?: globalThis.Response;
+  #headers = new Headers();
+  #jsonBodyReplacer?: (key: string, value: unknown) => unknown;
+  #request: Request;
+  #resources: number[] = [];
+  #status?: Status;
+  #type?: string;
+  #writable = true;
+}
+
+# output.js
+// mod.ts
+// this is from oak
+export class Response {
+  #body;
+  #bodySet = false;
+  #domResponse;
+  #headers = new Headers();
+  #jsonBodyReplacer;
+  #request;
+  #resources = [];
+  #status;
+  #type;
+  #writable = true;
+}

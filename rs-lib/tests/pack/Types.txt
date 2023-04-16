@@ -22,6 +22,7 @@ export class Test<T> implements Other extends Other2<T> {
   public #c: number;
   readonly #e: number;
   override #f!: number;
+  #g?: ResponseBody | ResponseBodyFunction;
 
   constructor(public a: string, protected b: number, private c, readonly d?: string, override e: number = 2) {
     super();
@@ -55,6 +56,7 @@ export let Test = class Test extends Other2 {
     #c;
     #e;
     #f;
+    #g;
     constructor(a, b, c, d, e = 2){
         super();
     }

@@ -11,12 +11,14 @@ use anyhow::Result;
 use deno_ast::apply_text_changes;
 use deno_ast::parse_module;
 use deno_ast::swc::ast::Id;
+use deno_ast::swc::common::private::serde::de::FlatInternallyTaggedAccess;
 use deno_ast::swc::parser::token::Keyword;
 use deno_ast::swc::parser::token::Token;
 use deno_ast::swc::parser::token::TokenAndSpan;
 use deno_ast::swc::parser::token::Word;
 use deno_ast::view::Accessibility;
 use deno_ast::view::AwaitExpr;
+use deno_ast::view::BindingIdent;
 use deno_ast::view::CallExpr;
 use deno_ast::view::Callee;
 use deno_ast::view::Decl;
@@ -217,7 +219,7 @@ pub fn pack(
   let mut ordered_specifiers: Vec<(&ModuleSpecifier, &deno_graph::Module)> =
     Default::default();
 
-  let modules = graph.walk(
+  let mut modules = graph.walk(
     roots,
     WalkOptions {
       check_js: true,
@@ -225,13 +227,20 @@ pub fn pack(
       follow_type_only: true,
     },
   );
-  for (specifier, _) in modules {
+  while let Some((specifier, _)) = modules.next() {
+    let is_file = specifier.scheme() == "file";
+    if !is_file {
+      // don't analyze any dependenices of remove modules
+      modules.skip_previous_dependencies();
+    }
     let module = graph.get(specifier).unwrap();
     let specifier = module.specifier();
     match module {
       deno_graph::Module::Esm(esm) => {
         ordered_specifiers.push((specifier, module));
-        analyze_esm_module(esm, &mut context)?;
+        if is_file {
+          analyze_esm_module(esm, &mut context)?;
+        }
       }
       deno_graph::Module::Json(_) => {
         ordered_specifiers.push((specifier, module));
@@ -242,55 +251,67 @@ pub fn pack(
     }
   }
 
+  let root_dir = get_root_dir(ordered_specifiers.iter().map(|(s, _)| *s));
   let mut final_text = String::new();
   for (specifier, module) in &ordered_specifiers {
-    if let deno_graph::Module::Esm(_) = module {
+    if specifier.scheme() != "file" {
       let module_data = context.module_data.get_mut(specifier);
-      if module_data.exports.is_empty() || context.graph.roots[0] == **specifier
-      {
-        continue;
-      }
-      final_text
-        .push_str(&format!("const {} = {{\n", module_data.id.to_code_string()));
-      for name in context.module_data.get_export_names(specifier) {
-        final_text.push_str(&format!("  {}: undefined,\n", name));
-      }
-      final_text.push_str("};\n");
-    }
-  }
-
-  let root_dir = get_root_dir(ordered_specifiers.iter().map(|(s, _)| *s));
-  for (specifier, module) in &ordered_specifiers {
-    if let deno_graph::Module::Json(json) = module {
-      let module_data = context.module_data.get_mut(specifier);
-      if !final_text.is_empty() {
-        final_text.push('\n');
-      }
-      let displayed_specifier = match root_dir {
-        Some(prefix) => {
-          if specifier.scheme() == "file" {
-            let specifier = specifier.as_str();
-            specifier.strip_prefix(prefix).unwrap_or(specifier)
-          } else {
-            specifier.as_str()
-          }
-        }
-        None => specifier.as_str(),
-      };
       final_text.push_str(&format!(
-        "// {}\nconst {} = {{\n  default: {}\n}};\n",
-        displayed_specifier,
+        "import * as {} from \"{}\";\n",
         module_data.id.to_code_string(),
-        json.source.trim()
+        specifier.to_string(),
       ));
+    } else {
+      if let deno_graph::Module::Esm(_) = module {
+        let export_names = context.module_data.get_export_names(specifier);
+        let module_data = context.module_data.get_mut(specifier);
+        if export_names.is_empty() || context.graph.roots[0] == **specifier {
+          continue;
+        }
+        final_text.push_str(&format!(
+          "const {} = {{\n",
+          module_data.id.to_code_string()
+        ));
+        for name in export_names {
+          final_text.push_str(&format!("  {}: undefined,\n", name));
+        }
+        final_text.push_str("};\n");
+      } else if let deno_graph::Module::Json(json) = module {
+        let module_data = context.module_data.get_mut(specifier);
+        if !final_text.is_empty() {
+          final_text.push('\n');
+        }
+        let displayed_specifier = match root_dir {
+          Some(prefix) => {
+            if specifier.scheme() == "file" {
+              let specifier = specifier.as_str();
+              specifier.strip_prefix(prefix).unwrap_or(specifier)
+            } else {
+              specifier.as_str()
+            }
+          }
+          None => specifier.as_str(),
+        };
+        final_text.push_str(&format!(
+          "// {}\nconst {} = {{\n  default: {}\n}};\n",
+          displayed_specifier,
+          module_data.id.to_code_string(),
+          json.source.trim()
+        ));
+      }
     }
   }
 
   for (specifier, module) in ordered_specifiers.iter().rev() {
+    if specifier.scheme() != "file" {
+      continue;
+    }
+
     if let deno_graph::Module::Esm(esm) = module {
       let source = &esm.source;
       let module_data = context.module_data.get(specifier).unwrap();
       // todo: don't clone
+      eprintln!("PACKING: {}", specifier);
       let module_text =
         apply_text_changes(source, module_data.text_changes.clone());
       let module_text = if module_data.requires_transpile {
@@ -914,20 +935,6 @@ impl<'a> TextChangeCollector<'a> {
         let id = ident.to_id();
         if let Some(text) = self.replace_ids.get(&id) {
           self.replace_ident_text(ident, text)
-        } else if ident.optional() {
-          // hack for bug in swc that should be investigated
-          let next_token = ident.range().next_token_fast(self.module).unwrap();
-          if next_token.text_fast(self.module) == "?" {
-            self.remove_token(next_token);
-          } else if ident.text_fast(self.module).contains('?') {
-            self.remove_first_token(ident.range(), "?");
-          } else {
-            debug_assert!(
-              false,
-              "Could not find question token for: {}",
-              ident.text_fast(self.module)
-            );
-          }
         }
       }
       Node::ExportDefaultExpr(expr) => {
@@ -999,6 +1006,9 @@ impl<'a> TextChangeCollector<'a> {
       Node::ExportDecl(decl) => {
         match &decl.decl {
           Decl::TsInterface(_) | Decl::TsTypeAlias(_) => {
+            self.remove_range(decl.range());
+          }
+          Decl::Fn(fn_decl) if fn_decl.function.body.is_none() => {
             self.remove_range(decl.range());
           }
           Decl::Class(_)
@@ -1086,6 +1096,9 @@ impl<'a> TextChangeCollector<'a> {
           if prop.definite() {
             self.remove_first_token(prop.range(), "!");
           }
+          if prop.is_optional() {
+            self.remove_first_token(prop.range(), "?");
+          }
           self.visit_children(prop.into());
         }
       }
@@ -1102,6 +1115,9 @@ impl<'a> TextChangeCollector<'a> {
         }
         if prop.definite() {
           self.remove_first_token(prop.range(), "!");
+        }
+        if prop.is_optional() {
+          self.remove_first_token(prop.range(), "?");
         }
         self.visit_children(prop.into());
       }
@@ -1143,7 +1159,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::CatchClause(_)
       | Node::ClassDecl(_)
       | Node::ClassExpr(_)
-      | Node::ClassMethod(_)
       | Node::ComputedPropName(_)
       | Node::CondExpr(_)
       | Node::ContinueStmt(_)
@@ -1153,7 +1168,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::EmptyStmt(_)
       | Node::ExprOrSpread(_)
       | Node::ExprStmt(_)
-      | Node::FnDecl(_)
       | Node::FnExpr(_)
       | Node::ForInStmt(_)
       | Node::ForOfStmt(_)
@@ -1193,7 +1207,6 @@ impl<'a> TextChangeCollector<'a> {
       | Node::ObjectPat(_)
       | Node::OptCall(_)
       | Node::OptChainExpr(_)
-      | Node::Param(_)
       | Node::ParenExpr(_)
       | Node::PrivateMethod(_)
       | Node::PrivateName(_)
@@ -1223,6 +1236,57 @@ impl<'a> TextChangeCollector<'a> {
       | Node::WithStmt(_)
       | Node::YieldExpr(_) => {
         self.visit_children(node);
+      }
+      Node::Param(param) => {
+        if param
+          .pat
+          .to::<BindingIdent>()
+          .map(|i| i.id.sym() == "this")
+          .unwrap_or(false)
+        {
+          self.remove_range_with_previous_whitespace(param.range());
+          if let Some(token) = param.next_token_fast(self.module) {
+            if token.token == Token::Comma {
+              self.remove_range_with_previous_whitespace(token.range());
+            }
+          }
+        } else {
+          self.visit_children(node);
+          if let Some(binding_ident) = param.pat.to::<BindingIdent>() {
+            if binding_ident.id.optional() {
+              let ident = binding_ident.id;
+              // hack for bug in swc that should be investigated
+              let next_token =
+                ident.range().next_token_fast(self.module).unwrap();
+              if next_token.text_fast(self.module) == "?" {
+                self.remove_token(next_token);
+              } else if ident.text_fast(self.module).contains('?') {
+                self.remove_first_token(ident.range(), "?");
+              } else {
+                debug_assert!(
+                  false,
+                  "Could not find question token for: {}",
+                  ident.text_fast(self.module)
+                );
+              }
+            }
+          }
+        }
+      }
+      Node::ClassMethod(method) => {
+        if method.function.body.is_none() {
+          self.remove_range_with_previous_whitespace(method.range());
+        } else {
+          self.visit_children(node);
+        }
+      }
+
+      Node::FnDecl(func) => {
+        if func.function.body.is_none() {
+          self.remove_range_with_previous_whitespace(func.range());
+        } else {
+          self.visit_children(node);
+        }
       }
 
       Node::TsEnumDecl(_) => {

@@ -3,3 +3,6 @@ members = [
   "rs-lib",
   "wasm"
 ]
+
+[patch.crates-io]
+deno_graph = { path = "../deno_graph" }

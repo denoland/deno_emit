@@ -1,0 +1,26 @@
+# mod.ts
+export function exported(): string;
+export function exported() {
+}
+
+function test(): string;
+function test() {
+}
+
+class MyTest {
+  method(): string;
+  method() {
+  }
+}
+
+# output.js
+// mod.ts
+export function exported() {
+}
+function test() {
+}
+
+class MyTest {
+  method() {
+  }
+}
