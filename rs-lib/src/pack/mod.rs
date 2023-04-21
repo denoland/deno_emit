@@ -68,6 +68,8 @@ use deno_graph::ModuleGraph;
 use deno_graph::ModuleParser;
 use deno_graph::WalkOptions;
 
+mod dts;
+
 #[derive(Default)]
 struct ModuleDataCollection {
   // todo: pre-allocate when upgrading deno_graph
@@ -196,9 +198,16 @@ struct Context<'a> {
   module_data: ModuleDataCollection,
 }
 
+pub struct PackOptions {
+  /// If the packing should include remote modules or leave
+  /// them as external.
+  pub include_remote: bool,
+}
+
 pub fn pack(
   graph: &ModuleGraph,
   parser: &CapturingModuleParser,
+  options: PackOptions,
 ) -> Result<String> {
   // TODO
   // - dynamic imports
@@ -229,7 +238,7 @@ pub fn pack(
   );
   while let Some((specifier, _)) = modules.next() {
     let is_file = specifier.scheme() == "file";
-    if !is_file {
+    if !options.include_remote && !is_file {
       // don't analyze any dependenices of remove modules
       modules.skip_previous_dependencies();
     }
@@ -238,7 +247,7 @@ pub fn pack(
     match module {
       deno_graph::Module::Esm(esm) => {
         ordered_specifiers.push((specifier, module));
-        if is_file {
+        if options.include_remote || is_file {
           analyze_esm_module(esm, &mut context)?;
         }
       }
@@ -303,15 +312,15 @@ pub fn pack(
   }
 
   for (specifier, module) in ordered_specifiers.iter().rev() {
-    if specifier.scheme() != "file" {
+    if !options.include_remote && specifier.scheme() != "file" {
       continue;
     }
 
     if let deno_graph::Module::Esm(esm) = module {
       let source = &esm.source;
       let module_data = context.module_data.get(specifier).unwrap();
-      // todo: don't clone
       eprintln!("PACKING: {}", specifier);
+      // todo: don't clone
       let module_text =
         apply_text_changes(source, module_data.text_changes.clone());
       let module_text = if module_data.requires_transpile {

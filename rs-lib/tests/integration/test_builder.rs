@@ -12,6 +12,7 @@ use deno_ast::ParseParams;
 use deno_ast::ParsedSource;
 use deno_ast::SourceTextInfo;
 use deno_emit::pack;
+use deno_emit::PackOptions;
 use deno_graph::BuildOptions;
 use deno_graph::CapturingModuleAnalyzer;
 use deno_graph::ModuleParser;
@@ -66,7 +67,13 @@ impl TestBuilder {
       )
       .await;
     graph.valid()?;
-    pack(&graph, &capturing_analyzer.as_capturing_parser())
+    pack(
+      &graph,
+      &capturing_analyzer.as_capturing_parser(),
+      PackOptions {
+        include_remote: false,
+      },
+    )
   }
 }
 
