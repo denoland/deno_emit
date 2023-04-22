@@ -70,6 +70,8 @@ use deno_graph::WalkOptions;
 
 mod dts;
 
+pub use dts::pack_dts;
+
 #[derive(Default)]
 struct ModuleDataCollection {
   // todo: pre-allocate when upgrading deno_graph
@@ -319,7 +321,7 @@ pub fn pack(
     if let deno_graph::Module::Esm(esm) = module {
       let source = &esm.source;
       let module_data = context.module_data.get(specifier).unwrap();
-      eprintln!("PACKING: {}", specifier);
+      // eprintln!("PACKING: {}", specifier);
       // todo: don't clone
       let module_text =
         apply_text_changes(source, module_data.text_changes.clone());

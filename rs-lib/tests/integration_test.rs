@@ -34,6 +34,32 @@ async fn test_specs() {
   }
 }
 
+#[tokio::test]
+async fn test_dts_specs() {
+  for (test_file_path, spec) in
+    get_specs_in_dir(&PathBuf::from("./tests/pack_dts"))
+  {
+    let mut builder = TestBuilder::new();
+    builder.with_loader(|loader| {
+      for file in &spec.files {
+        loader.add_file(&file.specifier, &file.text);
+      }
+    });
+
+    let result = builder.pack_dts().await.unwrap();
+    // uncomment to overwrite
+    // let mut spec = spec;
+    // spec.output_file.text = result.clone();
+    // std::fs::write(&test_file_path, spec.emit()).unwrap();
+    assert_eq!(
+      result,
+      spec.output_file.text,
+      "Should be same for {}",
+      test_file_path.display()
+    );
+  }
+}
+
 struct Spec {
   files: Vec<File>,
   output_file: File,
@@ -105,7 +131,7 @@ fn parse_spec(text: String) -> Spec {
   let output_file = files.remove(
     files
       .iter()
-      .position(|f| f.specifier == "output.js")
+      .position(|f| f.specifier == "output.js" || f.specifier == "output.d.ts")
       .unwrap(),
   );
   Spec { files, output_file }

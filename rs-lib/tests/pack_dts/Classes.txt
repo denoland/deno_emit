@@ -1,0 +1,33 @@
+# mod.ts
+export class Test {
+  prop?: string = 5;
+  other = 2;
+
+  constructor(public readonly text: string) {
+    5;
+  }
+
+  method() {
+    return 2;
+  }
+
+  protected test(): string {
+  }
+
+  private otherMethod() {
+    return 2;
+  }
+
+  #test() {
+    return 1;
+  }
+}
+
+# output.d.ts
+export class Test {
+    prop?: string;
+    other: unknown;
+    constructor(public readonly text: string);
+    method(): void;
+    protected test(): string;
+}

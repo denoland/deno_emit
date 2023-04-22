@@ -25,6 +25,7 @@ pub use deno_graph::source::LoadFuture;
 pub use deno_graph::source::Loader;
 
 pub use pack::pack;
+pub use pack::pack_dts;
 pub use pack::PackOptions;
 
 pub async fn bundle(

@@ -12,6 +12,7 @@ use deno_ast::ParseParams;
 use deno_ast::ParsedSource;
 use deno_ast::SourceTextInfo;
 use deno_emit::pack;
+use deno_emit::pack_dts;
 use deno_emit::PackOptions;
 use deno_graph::BuildOptions;
 use deno_graph::CapturingModuleAnalyzer;
@@ -47,6 +48,24 @@ impl TestBuilder {
   }
 
   pub async fn pack(&self) -> Result<String> {
+    let (graph, capturing_analyzer) = self.pre_pack().await?;
+    pack(
+      &graph,
+      &capturing_analyzer.as_capturing_parser(),
+      PackOptions {
+        include_remote: false,
+      },
+    )
+  }
+
+  pub async fn pack_dts(&self) -> Result<String> {
+    let (graph, capturing_analyzer) = self.pre_pack().await?;
+    pack_dts(&graph, &capturing_analyzer.as_capturing_parser())
+  }
+
+  async fn pre_pack(
+    &self,
+  ) -> Result<(deno_graph::ModuleGraph, CapturingModuleAnalyzer)> {
     let roots = vec![ModuleSpecifier::parse(&self.entry_point).unwrap()];
     let source_parser = ScopeAnalysisParser::default();
     let capturing_analyzer =
@@ -67,13 +86,7 @@ impl TestBuilder {
       )
       .await;
     graph.valid()?;
-    pack(
-      &graph,
-      &capturing_analyzer.as_capturing_parser(),
-      PackOptions {
-        include_remote: false,
-      },
-    )
+    Ok((graph, capturing_analyzer))
   }
 }
 
