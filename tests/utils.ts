@@ -3,6 +3,8 @@ import {
   parse,
   relative,
   resolve,
+  SEP,
+  toFileUrl,
 } from "https://deno.land/std@0.182.0/path/mod.ts";
 import {
   ensureFileSync,
@@ -29,10 +31,6 @@ const updateQueue = createUpdateQueue();
 
 type TranspileResult = Awaited<ReturnType<typeof emit>>;
 type BundleResult = Awaited<ReturnType<typeof bundle>>;
-
-const osType = typeof Deno?.build?.os === "string" ? Deno.build.os : "linux";
-
-const EOL = osType === "windows" ? "\r\n" : "\n";
 
 /**
  * Calls `emit` with the provided parameters and checks that the output is
@@ -85,7 +83,7 @@ export function testTranspile(
 
     await assertSnapshot(
       resolve(testDir, "mapping.json"),
-      JSON.stringify(mapping, null, 2) + EOL,
+      JSON.stringify(mapping, null, 2) + "\n",
       snapshotMode,
     );
     await assertSnapshots(
@@ -145,11 +143,11 @@ export function testBundle(
 /**
  * Provides the full path of a fixture file stored in "testdata".
  *
- * @param path Path relative to the folder with the fixtures.
+ * @param parts Path relative to the folder with the fixtures.
  * @returns the full path of the fixture.
  */
-export function resolveFixture(path: string): string {
-  return resolve(Deno.cwd(), "testdata", path);
+export function resolveFixture(...parts: string[]): string {
+  return resolve(Deno.cwd(), "testdata", ...parts);
 }
 
 async function assertSnapshot(
@@ -184,7 +182,7 @@ async function assertSnapshot(
     );
     const diffMsg = buildMessage(diffResult);
     throw new AssertionError(
-      `Snapshot at ${relativePath} does not match:${EOL}${diffMsg}`,
+      `Snapshot at ${relativePath} does not match:\n${diffMsg}`,
     );
   }
 }
@@ -314,7 +312,11 @@ function applyUpdate(path: string, actual: string | undefined): void {
 function normalizeIfFileUrl(urlString: string): string {
   const url = new URL(urlString);
   if (url.protocol === "file:") {
-    url.pathname = relative(Deno.cwd(), url.pathname);
+    const path = fromFileUrl(url);
+    // We prepend with the separator instead of using `resolve()` because, on
+    // Windows, this adds the device prefix (e.g. `C:`), which we don't want.
+    const normalizedPath = SEP + relative(Deno.cwd(), path);
+    return toFileUrl(normalizedPath).toString();
   }
   return url.toString();
 }
@@ -346,7 +348,7 @@ function fixSourceMap(sourceMapJsonString: string): string {
 }
 
 function fixInlineSourceMap(code: string): string {
-  const lines = code.split(EOL);
+  const lines = code.split("\n");
 
   const indexOfLastLine = lines.findLastIndex((line) => line !== "");
   const match = lines[indexOfLastLine]?.match(inlineSourceMapRegex);
@@ -362,7 +364,7 @@ function fixInlineSourceMap(code: string): string {
   lines[indexOfLastLine] =
     `//# sourceMappingURL=data:application/json;base64,${newSourceMapBase64}`;
 
-  return lines.join(EOL);
+  return lines.join("\n");
 }
 
 async function hashShortSha1(input: string): Promise<string> {
