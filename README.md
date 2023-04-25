@@ -38,10 +38,10 @@ transpiled fashion. An example of taking some TypeScript and transpiling to
 JavaScript:
 
 ```ts
-import { emit } from "https://deno.land/x/emit/mod.ts";
+import { transpile } from "https://deno.land/x/emit/mod.ts";
 
 const url = new URL("./testdata/mod.ts", import.meta.url);
-const result = await emit(url);
+const result = await transpile(url);
 
 const code = result[url.href];
 console.log(code.includes("export default function hello()"));
