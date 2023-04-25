@@ -1,6 +1,6 @@
 [package]
 name = "deno_emit"
-version = "0.19.0"
+version = "0.20.0"
 edition = "2021"
 description = "module transpiling and emitting for deno"
 homepage = "https://deno.land/"
@@ -11,8 +11,8 @@ license = "MIT"
 [dependencies]
 anyhow = "1.0.44"
 base64 = "0.13.0"
-deno_ast = { version = "0.25.0", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
-deno_graph = "0.47.0"
+deno_ast = { version = "0.26.0", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
+deno_graph = "0.48.0"
 escape8259 = "0.5.2"
 futures = "0.3.17"
 parking_lot = { version = "0.11.2" }
