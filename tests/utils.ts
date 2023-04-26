@@ -29,7 +29,17 @@ const inlineSourceMapRegex =
 const tracker: Set<string> = new Set();
 
 type TranspileResult = Awaited<ReturnType<typeof emit>>;
+interface TestTranspileOutput {
+  result: TranspileResult;
+  modulesPaths: Record<string, string>;
+}
+
 type BundleResult = Awaited<ReturnType<typeof bundle>>;
+interface TestBundleOutput {
+  result: BundleResult;
+  bundlePath: string;
+  sourceMapPath?: string;
+}
 
 /**
  * Calls `emit` with the provided parameters and checks that the output is
@@ -47,7 +57,10 @@ type BundleResult = Awaited<ReturnType<typeof bundle>>;
 export function testTranspile(
   root: string | URL,
   options?: EmitOptions,
-  more?: (result: TranspileResult, t: Deno.TestContext) => void | Promise<void>,
+  more?: (
+    output: TestTranspileOutput,
+    t: Deno.TestContext,
+  ) => void | Promise<void>,
 ) {
   return async function (t: Deno.TestContext): Promise<void> {
     const result = fixTranspileResult(await emit(root, options));
@@ -92,7 +105,16 @@ export function testTranspile(
     );
 
     if (more) {
-      await more(result, t);
+      const output: TestTranspileOutput = {
+        result,
+        modulesPaths: Object.fromEntries(
+          Object.entries(mapping).map(([url, filename]) => {
+            const filepath = resolve(testDir, "modules", filename);
+            return [url, filepath];
+          }),
+        ),
+      };
+      await more(output, t);
     }
   };
 }
@@ -110,7 +132,10 @@ export function testTranspile(
 export function testBundle(
   root: string | URL,
   options?: BundleOptions,
-  more?: (result: BundleResult, t: Deno.TestContext) => void | Promise<void>,
+  more?: (
+    output: TestBundleOutput,
+    t: Deno.TestContext,
+  ) => void | Promise<void>,
 ) {
   return async function (t: Deno.TestContext): Promise<void> {
     const result = fixBundleResult(await bundle(root, options));
@@ -118,23 +143,31 @@ export function testBundle(
     const testName = getTestName(t);
     const snapshotDir = getSnapshotDir(t);
 
+    const bundlePath = resolve(snapshotDir, `${testName}.js`);
+    const sourceMapPath = resolve(snapshotDir, `${testName}.js.map`);
+
     const snapshotMode =
       existsSync(snapshotDir, { isReadable: true, isDirectory: true })
         ? getMode()
         : "update";
     await assertSnapshot(
-      resolve(snapshotDir, `${testName}.js`),
+      bundlePath,
       result.code,
       snapshotMode,
     );
     await assertSnapshot(
-      resolve(snapshotDir, `${testName}.js.map`),
+      sourceMapPath,
       result.map,
       snapshotMode,
     );
 
     if (more) {
-      await more(result, t);
+      const output: TestBundleOutput = {
+        result,
+        bundlePath,
+        sourceMapPath: result.map ? sourceMapPath : undefined,
+      };
+      await more(output, t);
     }
   };
 }

@@ -41,7 +41,7 @@ Deno.test({
 
 Deno.test({
   name: "json escapes",
-  fn: testBundle(resolveFixture("escape.ts"), undefined, (result) => {
+  fn: testBundle(resolveFixture("escape.ts"), undefined, ({ result }) => {
     // This is done on purpose, as `String.raw` still performs a string interpolation,
     // and we want a literal value ${jsInterpolation" as is, without any modifications.
     // We should not need to escape `$` nor `{` as they are both JSON-safe characters.
