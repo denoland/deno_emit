@@ -257,7 +257,7 @@ Deno.test({
                   code.split("\n").at(-2)?.startsWith(
                     "//# sourceMappingURL=data:application/json;base64,",
                   ),
-                  "code does not contain inline source map",
+                  "code contains an inline source map",
                 );
                 assertEquals(
                   map,
@@ -275,7 +275,7 @@ Deno.test({
                   !code.includes(
                     "//# sourceMappingURL=",
                   ),
-                  "code does not reference any source map",
+                  "code does not reference any source maps",
                 );
                 assertEquals(
                   map,
