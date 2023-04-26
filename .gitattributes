@@ -1,0 +1,3 @@
+* text=auto
+/tests/__snapshots__/** text eol=lf
+/testdata/** text eol=lf

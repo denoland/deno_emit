@@ -1,0 +1,4 @@
+export default function hello() {
+    return "Hello there!";
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vc3JjLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIGhlbGxvKCk6IHN0cmluZyB7XG4gIHJldHVybiBcIkhlbGxvIHRoZXJlIVwiO1xufVxuIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLGVBQWUsU0FBUyxRQUFnQjtJQUN0QyxPQUFPO0FBQ1QsQ0FBQyJ9
