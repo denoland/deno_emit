@@ -32,7 +32,7 @@
  * @module
  */
 
-import { instantiate } from "./lib/emit.generated.js";
+import { instantiate } from "./emit.generated.js";
 import {
   type CacheSetting,
   createCache,
