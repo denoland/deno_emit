@@ -32,6 +32,7 @@
  * @module
  */
 
+// run `deno task build` to build this
 import { instantiate } from "./emit.generated.js";
 import {
   type CacheSetting,
