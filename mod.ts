@@ -38,7 +38,7 @@ import {
   createCache,
   type FetchCacher,
 } from "https://deno.land/x/deno_cache@0.4.1/mod.ts";
-import { resolve, toFileUrl } from "https://deno.land/std@0.140.0/path/mod.ts";
+import { resolve, toFileUrl } from "https://deno.land/std@0.180.0/path/mod.ts";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
