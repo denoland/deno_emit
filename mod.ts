@@ -149,6 +149,9 @@ export async function bundle(
     type,
     compilerOptions,
   } = options;
+
+  checkCompilerOptions(compilerOptions);
+
   let bundleLoad = load;
   if (!bundleLoad) {
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
@@ -191,4 +194,25 @@ export async function emit(
   }
   const { transpile } = await instantiate();
   return transpile(root.toString(), emitLoad, undefined);
+}
+
+function checkCompilerOptions(
+  compilerOptions: CompilerOptions | undefined,
+): void {
+  if (compilerOptions === undefined) {
+    return;
+  }
+  if (compilerOptions.inlineSourceMap && compilerOptions.sourceMap) {
+    throw new Error(
+      "Option 'sourceMap' cannot be specified with option 'inlineSourceMap'",
+    );
+  }
+  if (
+    compilerOptions.inlineSources &&
+    !(compilerOptions.inlineSourceMap || compilerOptions.sourceMap)
+  ) {
+    throw new Error(
+      "Option 'inlineSources' can only be used when either option '--inlineSourceMap' or option '--sourceMap' is provided",
+    );
+  }
 }

@@ -3,8 +3,10 @@ import {
   assert,
   assertEquals,
   assertExists,
+  assertRejects,
   assertStringIncludes,
 } from "https://deno.land/std@0.182.0/testing/asserts.ts";
+import { bundle } from "../mod.ts";
 import { resolveFixture, testBundle } from "./utils.ts";
 
 // FIXME: This repeats the test below. Consider supporting URLs without wrapping
@@ -72,68 +74,222 @@ Deno.test({
 });
 
 Deno.test({
-  name: "setting inlineSourceMap to true produces inline source maps",
-  fn: testBundle(resolveFixture("mod.ts"), {
-    compilerOptions: {
-      inlineSourceMap: true,
-    },
-  }, ({ result }) => {
-    assertEquals(result.map, undefined);
-    assert(
-      result.code.split("\n").at(-2)?.startsWith(
-        "//# sourceMappingURL=data:application/json;base64,",
-      ),
-    );
-  }),
-});
+  name: "source maps generation consistent with tsc",
+  async fn(t) {
+    type Outcome =
+      | "inline source maps"
+      | "external source maps"
+      | "no source maps"
+      | "error";
 
-Deno.test({
-  name: "setting inlineSourceMap does not produce any source maps",
-  fn: testBundle(resolveFixture("mod.ts"), {
-    compilerOptions: {
-      inlineSourceMap: false,
-    },
-  }, ({ result }) => {
-    assertEquals(result.map, undefined);
-    assert(
-      !result.code.includes(
-        "//# sourceMappingURL=data:application/json;base64,",
-      ),
-    );
-  }),
-});
+    interface TestCase {
+      compilerOptions: {
+        sourceMap?: boolean;
+        inlineSourceMap?: boolean;
+        inlineSources?: boolean;
+      };
+      outcome: Outcome;
+    }
 
-Deno.test({
-  name:
-    "setting sourceMap to true is not enough to produce external source maps as inline takes precedence",
-  fn: testBundle(resolveFixture("mod.ts"), {
-    compilerOptions: {
-      inlineSourceMap: false,
-    },
-  }, ({ result }) => {
-    assertEquals(result.map, undefined);
-    assert(
-      !result.code.includes(
-        "//# sourceMappingURL=data:application/json;base64,",
-      ),
-    );
-  }),
-});
+    const cases: TestCase[] = [
+      {
+        compilerOptions: {},
+        outcome: "no source maps",
+      },
+      {
+        compilerOptions: { sourceMap: false },
+        outcome: "no source maps",
+      },
+      {
+        compilerOptions: { inlineSourceMap: false },
+        outcome: "no source maps",
+      },
+      {
+        compilerOptions: { sourceMap: false, inlineSourceMap: false },
+        outcome: "no source maps",
+      },
+      {
+        compilerOptions: { inlineSources: false },
+        outcome: "no source maps",
+      },
+      {
+        compilerOptions: { sourceMap: false, inlineSources: false },
+        outcome: "no source maps",
+      },
+      {
+        compilerOptions: { inlineSourceMap: false, inlineSources: false },
+        outcome: "no source maps",
+      },
+      {
+        compilerOptions: {
+          sourceMap: false,
+          inlineSourceMap: false,
+          inlineSources: false,
+        },
+        outcome: "no source maps",
+      },
+      {
+        compilerOptions: { inlineSourceMap: true },
+        outcome: "inline source maps",
+      },
+      {
+        compilerOptions: { sourceMap: false, inlineSourceMap: true },
+        outcome: "inline source maps",
+      },
+      {
+        compilerOptions: { inlineSourceMap: true, inlineSources: true },
+        outcome: "inline source maps",
+      },
+      {
+        compilerOptions: { inlineSourceMap: true, inlineSources: false },
+        outcome: "inline source maps",
+      },
+      {
+        compilerOptions: {
+          sourceMap: false,
+          inlineSourceMap: true,
+          inlineSources: true,
+        },
+        outcome: "inline source maps",
+      },
+      {
+        compilerOptions: {
+          sourceMap: false,
+          inlineSourceMap: true,
+          inlineSources: false,
+        },
+        outcome: "inline source maps",
+      },
+      {
+        compilerOptions: { sourceMap: true },
+        outcome: "external source maps",
+      },
+      {
+        compilerOptions: { sourceMap: true, inlineSourceMap: false },
+        outcome: "external source maps",
+      },
+      {
+        compilerOptions: { sourceMap: true, inlineSources: true },
+        outcome: "external source maps",
+      },
+      {
+        compilerOptions: { sourceMap: true, inlineSources: false },
+        outcome: "external source maps",
+      },
+      {
+        compilerOptions: {
+          sourceMap: true,
+          inlineSourceMap: false,
+          inlineSources: true,
+        },
+        outcome: "external source maps",
+      },
+      {
+        compilerOptions: {
+          sourceMap: true,
+          inlineSourceMap: false,
+          inlineSources: false,
+        },
+        outcome: "external source maps",
+      },
+      {
+        compilerOptions: { sourceMap: true, inlineSourceMap: true },
+        outcome: "error",
+      },
+      {
+        compilerOptions: { inlineSources: true },
+        outcome: "error",
+      },
+      {
+        compilerOptions: { sourceMap: false, inlineSources: true },
+        outcome: "error",
+      },
+      {
+        compilerOptions: { inlineSourceMap: false, inlineSources: true },
+        outcome: "error",
+      },
+      {
+        compilerOptions: {
+          sourceMap: true,
+          inlineSourceMap: true,
+          inlineSources: true,
+        },
+        outcome: "error",
+      },
+      {
+        compilerOptions: {
+          sourceMap: true,
+          inlineSourceMap: true,
+          inlineSources: false,
+        },
+        outcome: "error",
+      },
+      {
+        compilerOptions: {
+          sourceMap: false,
+          inlineSourceMap: false,
+          inlineSources: true,
+        },
+        outcome: "error",
+      },
+    ];
 
-Deno.test({
-  name:
-    "setting sourceMap to true and inlineSourceMap to false produces external source maps",
-  fn: testBundle(resolveFixture("mod.ts"), {
-    compilerOptions: {
-      sourceMap: true,
-      inlineSourceMap: false,
-    },
-  }, ({ result }) => {
-    assertExists(result.map);
-    assert(
-      !result.code.includes(
-        "//# sourceMappingURL=data:application/json;base64,",
-      ),
-    );
-  }),
+    for (const { compilerOptions, outcome } of cases) {
+      await t.step({
+        name: `${
+          outcome === "error" ? "errors" : `emits ${outcome}`
+        } when compilerOptions is set to ${JSON.stringify(compilerOptions)}`,
+        async fn() {
+          function run() {
+            return bundle(resolveFixture("mod.ts"), {
+              compilerOptions,
+            });
+          }
+
+          if (outcome === "error") {
+            assertRejects(run, "bundle throws an error");
+          } else {
+            const { code, map } = await run();
+
+            switch (outcome) {
+              case "inline source maps":
+                assert(
+                  code.split("\n").at(-2)?.startsWith(
+                    "//# sourceMappingURL=data:application/json;base64,",
+                  ),
+                  "code does not contain inline source map",
+                );
+                assertEquals(
+                  map,
+                  undefined,
+                  "bundle does not return a source map",
+                );
+                break;
+
+              case "external source maps":
+                assertExists(map, "bundle returns a source map");
+                break;
+
+              case "no source maps":
+                assert(
+                  !code.includes(
+                    "//# sourceMappingURL=",
+                  ),
+                  "code does not reference any source map",
+                );
+                assertEquals(
+                  map,
+                  undefined,
+                  "bundle does not return a source map",
+                );
+                break;
+
+              default:
+                throw new Error(`Unexpected outcome: ${outcome}`);
+            }
+          }
+        },
+      });
+    }
+  },
 });
