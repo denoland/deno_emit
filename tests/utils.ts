@@ -15,7 +15,12 @@ import {
   buildMessage,
   diffstr,
 } from "https://deno.land/std@0.182.0/testing/_diff.ts";
-import { bundle, type BundleOptions, emit, type EmitOptions } from "../mod.ts";
+import {
+  bundle,
+  type BundleOptions,
+  transpile,
+  type TranspileOptions,
+} from "../mod.ts";
 import * as base64Url from "https://deno.land/std@0.182.0/encoding/base64url.ts";
 import * as base64 from "https://deno.land/std@0.182.0/encoding/base64.ts";
 
@@ -28,7 +33,7 @@ const inlineSourceMapRegex =
 // Tracks which snapshots are involved in order to identify conflicts.
 const tracker: Set<string> = new Set();
 
-type TranspileResult = Awaited<ReturnType<typeof emit>>;
+type TranspileResult = Awaited<ReturnType<typeof transpile>>;
 interface TestTranspileOutput {
   result: TranspileResult;
   modulesPaths: Record<string, string>;
@@ -42,9 +47,9 @@ interface TestBundleOutput {
 }
 
 /**
- * Calls `emit` with the provided parameters and checks that the output is
+ * Calls `transpile` with the provided parameters and checks that the output is
  * consistent with the snapshots.
- * Each module in the record returned by `emit` is stored as its own file.
+ * Each module in the record returned by `transpile` is stored as its own file.
  * In order to avoid special characters, the file name is a hash of the module's
  * URL. The mapping between the hashes and the URLs is stored alongside the
  * modules.
@@ -56,14 +61,14 @@ interface TestBundleOutput {
  */
 export function testTranspile(
   root: string | URL,
-  options?: EmitOptions,
+  options?: TranspileOptions,
   more?: (
     output: TestTranspileOutput,
     t: Deno.TestContext,
   ) => void | Promise<void>,
 ) {
   return async function (t: Deno.TestContext): Promise<void> {
-    const result = fixTranspileResult(await emit(root, options));
+    const result = fixTranspileResult(await transpile(root, options));
 
     const testDir = resolve(getSnapshotDir(t), getTestName(t));
 
