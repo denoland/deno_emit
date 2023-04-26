@@ -8,10 +8,10 @@
  * ### Example - Transpiling
  *
  * ```ts
- * import { emit } from "https://deno.land/x/emit/mod.ts";
+ * import { transpile } from "https://deno.land/x/emit/mod.ts";
  *
  * const url = new URL("./testdata/mod.ts", import.meta.url);
- * const result = await emit(url.href);
+ * const result = await transpile(url.href);
  *
  * const { code } = result;
  * console.log(code.includes("export default function hello()"));
@@ -67,8 +67,8 @@ export interface BundleOptions {
   type?: "module" | "classic";
 }
 
-/** Options which can be set when using the {@linkcode emit} function. */
-export interface EmitOptions {
+/** Options which can be set when using the {@linkcode transpile} function. */
+export interface TranspileOptions {
   /** Allow remote modules to be loaded or read from the cache. */
   allowRemote?: boolean;
   /** The cache root to use, overriding the default inferred `DENO_DIR`. */
@@ -178,17 +178,17 @@ export async function bundle(
  *          where the key is the emitted files name and the value is the
  *          source for the file.
  */
-export async function emit(
+export async function transpile(
   root: string | URL,
-  options: EmitOptions = {},
+  options: TranspileOptions = {},
 ): Promise<Record<string, string>> {
   root = root instanceof URL ? root : toFileUrl(resolve(root));
   const { cacheSetting, cacheRoot, allowRemote, load } = options;
-  let emitLoad = load;
-  if (!emitLoad) {
+  let transpileLoad = load;
+  if (!transpileLoad) {
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
-    emitLoad = cache.load;
+    transpileLoad = cache.load;
   }
   const { transpile } = await instantiate();
-  return transpile(root.toString(), emitLoad, undefined);
+  return transpile(root.toString(), transpileLoad, undefined);
 }
