@@ -1,1 +1,0 @@
-{"version":3,"sources":["file:///testdata/mod.ts"],"sourcesContent":["export default function hello(): string {\n  return \"Hello there!\";\n}\n"],"names":[],"mappings":"AAAe,SAAS,QAAgB;IACtC,OAAO;AACT;AAFA,4BAEC"}
