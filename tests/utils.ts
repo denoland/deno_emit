@@ -7,7 +7,7 @@ import {
   toFileUrl,
 } from "https://deno.land/std@0.182.0/path/mod.ts";
 import {
-  ensureFileSync,
+  ensureFile,
   existsSync,
 } from "https://deno.land/std@0.182.0/fs/mod.ts";
 import { AssertionError } from "https://deno.land/std@0.182.0/testing/asserts.ts";
@@ -25,9 +25,8 @@ const textDecoder = new TextDecoder();
 const inlineSourceMapRegex =
   /^\/\/# sourceMappingURL=data:application\/json;base64,([a-zA-Z0-9+/=]+)$/;
 
-// Ensures that operations that update the snapshots are performed sequentially,
-// in order, and at the end of the test run.
-const updateQueue = createUpdateQueue();
+// Tracks which snapshots are involved in order to identify conflicts.
+const tracker: Set<string> = new Set();
 
 type TranspileResult = Awaited<ReturnType<typeof emit>>;
 type BundleResult = Awaited<ReturnType<typeof bundle>>;
@@ -171,10 +170,10 @@ async function assertSnapshot(
   const relativePath = relative(Deno.cwd(), path);
 
   if (mode === "update") {
-    const enqueueSucceeded = updateQueue.enqueueUpdate(path, actual);
-    if (!enqueueSucceeded) {
+    if (tracker.has(path)) {
       throw new Error(`Snapshot already defined at ${relativePath}`);
     }
+    await applyUpdate(path, actual);
   } else {
     const diffResult = diffstr(
       actual ?? "",
@@ -263,48 +262,16 @@ function getSnapshotDir(context: Deno.TestContext): string {
   return snapshotDir;
 }
 
-interface UpdateQueue {
-  enqueueUpdate(path: string, actual: string | undefined): boolean;
-}
-
-function createUpdateQueue(): UpdateQueue {
-  const updates: Map<string, string | undefined> = new Map();
-
-  function enqueueUpdate(path: string, actual: string | undefined): boolean {
-    if (updates.has(path)) {
-      return false;
-    }
-    updates.set(path, actual);
-    registerTeardown();
-    return true;
-  }
-
-  let teardownRegistered = false;
-  function registerTeardown() {
-    if (!teardownRegistered) {
-      globalThis.addEventListener("unload", teardown);
-      teardownRegistered = true;
-    }
-  }
-
-  function teardown() {
-    for (const [path, actual] of updates.entries()) {
-      applyUpdate(path, actual);
-    }
-  }
-
-  return { enqueueUpdate };
-}
-
-// Updates are applied synchronously because we cannot reliably perform async
-// operations when the process dies.
-function applyUpdate(path: string, actual: string | undefined): void {
+async function applyUpdate(
+  path: string,
+  actual: string | undefined,
+): Promise<void> {
   if (actual === undefined) {
-    Deno.removeSync(path);
+    await Deno.remove(path);
     return;
   }
-  ensureFileSync(path);
-  Deno.writeTextFileSync(path, actual);
+  await ensureFile(path);
+  await Deno.writeTextFile(path, actual);
 }
 
 // We don't want to litter the snapshots with absolute file paths, which
