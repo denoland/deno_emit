@@ -20,7 +20,7 @@ import {
   type BundleOptions,
   transpile,
   type TranspileOptions,
-} from "../mod.ts";
+} from "../js/mod.ts";
 import * as base64Url from "https://deno.land/std@0.182.0/encoding/base64url.ts";
 import * as base64 from "https://deno.land/std@0.182.0/encoding/base64.ts";
 

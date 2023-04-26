@@ -6,7 +6,7 @@ import {
   assertRejects,
   assertStringIncludes,
 } from "https://deno.land/std@0.182.0/testing/asserts.ts";
-import { bundle } from "../mod.ts";
+import { bundle } from "../js/mod.ts";
 import { resolveFixture, testBundle } from "./utils.ts";
 
 // FIXME: This repeats the test below. Consider supporting URLs without wrapping

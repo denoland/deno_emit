@@ -4,4 +4,4 @@
 .vscode/
 /js/LICENSE
 /js/emit_bg.wasm
-/js/emit.generate.js
+/js/emit.generated.js
