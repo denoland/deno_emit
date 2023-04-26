@@ -212,7 +212,7 @@ function checkCompilerOptions(
     !(compilerOptions.inlineSourceMap || compilerOptions.sourceMap)
   ) {
     throw new Error(
-      "Option 'inlineSources' can only be used when either option '--inlineSourceMap' or option '--sourceMap' is provided",
+      "Option 'inlineSources' can only be used when either option 'inlineSourceMap' or option 'sourceMap' is provided",
     );
   }
 }
