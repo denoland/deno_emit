@@ -37,11 +37,3 @@ const result = await bundle(
 const { code } = result;
 console.log(code);
 ```
-
-## Type checking
-
-Currently _emit_ does not perform type checking, while the prior `Deno.emit()`
-could. Getting type checking to run under Deno is a complex process. While we
-want to provide a user loadable solution for this, it is unlikely that it will
-be provided as part of this module, or would exist as a separate loadable module
-as part of this one.
