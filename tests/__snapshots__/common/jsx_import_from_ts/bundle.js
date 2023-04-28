@@ -1,0 +1,8 @@
+const React = {
+    createElement () {}
+};
+function app() {
+    return React.createElement("div", null, React.createElement("h2", null, "asdf"));
+}
+console.log(app);
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vc3ViZGlyL2FwcC5qc3giLCJmaWxlOi8vL2pzeF9pbXBvcnRfZnJvbV90cy50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJjb25zdCBSZWFjdCA9IHtcbiAgY3JlYXRlRWxlbWVudCgpIHt9LFxufTtcblxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gYXBwKCkge1xuICByZXR1cm4gKFxuICAgIDxkaXY+XG4gICAgICA8aDI+YXNkZjwvaDI+XG4gICAgPC9kaXY+XG4gICk7XG59XG4iLCJpbXBvcnQgYXBwIGZyb20gXCIuL3N1YmRpci9hcHAuanN4XCI7XG5cbmNvbnNvbGUubG9nKGFwcCk7XG4iXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEsTUFBTSxRQUFRO0lBQ1osaUJBQWdCLENBQUM7QUFDbkI7QUFFZSxTQUFTLE1BQU07SUFDNUIsT0FDRSxvQkFBQyxhQUNDLG9CQUFDLFlBQUc7QUFHVjtBQ1JBLFFBQVEsR0FBRyJ9

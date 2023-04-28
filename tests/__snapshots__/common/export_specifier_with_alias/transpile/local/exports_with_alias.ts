@@ -1,0 +1,5 @@
+export { foo as test1 } from "./subdir/foo.ts";
+export { foo as test2 } from "./subdir/foo.ts";
+import { foo } from "./subdir/foo.ts";
+console.log(foo);
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vZXhwb3J0c193aXRoX2FsaWFzLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCB7IGZvbyBhcyB0ZXN0MSB9IGZyb20gXCIuL3N1YmRpci9mb28udHNcIjtcbmV4cG9ydCB7IGZvbyBhcyB0ZXN0MiB9IGZyb20gXCIuL3N1YmRpci9mb28udHNcIjtcbmltcG9ydCB7IGZvbyB9IGZyb20gXCIuL3N1YmRpci9mb28udHNcIjtcblxuY29uc29sZS5sb2coZm9vKTtcbiJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSxTQUFTLE9BQU8sS0FBSyxRQUFRLGtCQUFrQjtBQUMvQyxTQUFTLE9BQU8sS0FBSyxRQUFRLGtCQUFrQjtBQUMvQyxTQUFTLEdBQUcsUUFBUSxrQkFBa0I7QUFFdEMsUUFBUSxHQUFHLENBQUMifQ==

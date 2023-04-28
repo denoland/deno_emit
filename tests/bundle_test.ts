@@ -7,70 +7,55 @@ import {
   assertStringIncludes,
 } from "https://deno.land/std@0.182.0/testing/asserts.ts";
 import { bundle } from "../js/mod.ts";
-import { resolveFixture, testBundle } from "./utils.ts";
+import { resolveFixture, runModule, testBundle } from "./utils.ts";
 
-// FIXME: This repeats the test below. Consider supporting URLs without wrapping
-// in a URL object.
 Deno.test({
-  name: "remote",
+  name: "json import",
   fn: testBundle(
-    new URL("https://deno.land/std@0.140.0/examples/chat/server.ts"),
-  ),
-});
-
-Deno.test({
-  name: "url",
-  fn: testBundle(
-    new URL("https://deno.land/std@0.140.0/examples/chat/server.ts"),
-  ),
-});
-
-Deno.test({
-  name: "relative",
-  fn: testBundle("./testdata/mod.ts"),
-});
-
-Deno.test({
-  name: "absolute",
-  fn: testBundle(resolveFixture("mod.ts")),
-});
-
-Deno.test({
-  name: "source",
-  fn: testBundle(new URL("file:///src.ts"), {
-    async load(specifier) {
-      if (specifier !== "file:///src.ts") return undefined;
-      const content = await Deno.readTextFile(resolveFixture("mod.ts"));
-      return { kind: "module", specifier, content };
+    resolveFixture("json_import.ts"),
+    undefined,
+    async ({ bundlePath }) => {
+      const output = await runModule(bundlePath);
+      assertStringIncludes(output, "with space");
     },
-  }),
+  ),
 });
 
 Deno.test({
-  name: "json escapes",
-  fn: testBundle(resolveFixture("escape.ts"), undefined, ({ result }) => {
-    // This is done on purpose, as `String.raw` still performs a string interpolation,
-    // and we want a literal value ${jsInterpolation" as is, without any modifications.
-    // We should not need to escape `$` nor `{` as they are both JSON-safe characters.
-    const jsInterpolation = "${jsInterpolation}";
-    assertStringIncludes(
-      result.code,
-      String
-        .raw`const __default = JSON.parse("{\n  \"key\": \"a value with newline\\n, \\\"double quotes\\\", 'single quotes', and ${jsInterpolation}\"\n}");`,
-    );
-  }),
+  name: "json import escape",
+  fn: testBundle(
+    resolveFixture("json_import_escape.ts"),
+    undefined,
+    async ({ bundlePath, result }) => {
+      const output = await runModule(bundlePath);
+      assertStringIncludes(
+        output,
+        "a value with newline\n, \"double quotes\", 'single quotes', ${jsInterpolation} and `string literal`",
+      );
+
+      // This is done on purpose, as `String.raw` still performs a string interpolation,
+      // and we want a literal value as is, without any modifications.
+      // We should not need to escape $, { nor ` as they are JSON-safe characters.
+      const jsInterpolation = "${jsInterpolation} and `string literal`";
+      assertStringIncludes(
+        result.code,
+        String
+          .raw`const __default = JSON.parse("\"a value with newline\\n, \\\"double quotes\\\", 'single quotes', ${jsInterpolation}\"");`,
+      );
+    },
+  ),
 });
 
 Deno.test({
-  name: "inline source maps are enabled by default",
-  fn: testBundle(resolveFixture("mod.ts"), undefined, ({ result }) => {
-    assertEquals(result.map, undefined);
-    assert(
-      result.code.split("\n").at(-2)?.startsWith(
-        "//# sourceMappingURL=data:application/json;base64,",
-      ),
-    );
-  }),
+  name: "circular",
+  fn: testBundle(
+    resolveFixture("circular1.ts"),
+    undefined,
+    async ({ bundlePath }) => {
+      const output = await runModule(bundlePath);
+      assertEquals(output, "f2\nf1\n");
+    },
+  ),
 });
 
 Deno.test({
@@ -241,13 +226,13 @@ Deno.test({
         } when compilerOptions is set to ${JSON.stringify(compilerOptions)}`,
         async fn() {
           function run() {
-            return bundle(resolveFixture("mod.ts"), {
+            return bundle(resolveFixture("hello_world.ts"), {
               compilerOptions,
             });
           }
 
           if (outcome === "error") {
-            assertRejects(run, "bundle throws an error");
+            await assertRejects(run, "bundle throws an error");
           } else {
             const { code, map } = await run();
 
