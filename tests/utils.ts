@@ -532,12 +532,12 @@ export async function runModule(
   modulePath: string,
   configPath?: string,
 ): Promise<string> {
-  const { status, output, stderrOutput } = await denoRun(
+  const { success, output, stderrOutput } = await denoRun(
     modulePath,
     configPath,
   );
   assertEquals(stderrOutput, "", "deno run does not output to stderr");
-  assert(status.success, "deno run succeeds");
+  assert(success, "deno run succeeds");
   return output;
 }
 
@@ -555,10 +555,10 @@ async function denoRun(
   modulePath: string,
   configPath?: string,
 ): Promise<
-  { status: Deno.ProcessStatus; output: string; stderrOutput: string }
+  { success: boolean; code: number; output: string; stderrOutput: string }
 > {
-  const process = Deno.run({
-    cmd: ["deno", "run", modulePath].concat(
+  const command = new Deno.Command(Deno.execPath(), {
+    args: ["run", modulePath].concat(
       configPath ? ["--config", configPath] : [],
     ),
     cwd: Deno.cwd(),
@@ -566,9 +566,9 @@ async function denoRun(
     stdout: "piped",
     stderr: "piped",
   });
-  const status = await process.status();
-  const output = new TextDecoder().decode(await process.output());
-  const stderrOutput = new TextDecoder().decode(await process.stderrOutput());
-  process.close();
-  return { status, output, stderrOutput };
+  const process = command.spawn();
+  const { success, code, stdout, stderr } = await process.output();
+  const output = textDecoder.decode(stdout);
+  const stderrOutput = textDecoder.decode(stderr);
+  return { success, code, output, stderrOutput };
 }
