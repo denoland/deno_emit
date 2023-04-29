@@ -107,18 +107,17 @@ export function testTranspile(
 
     for (const [urlStr, source] of Object.entries(result)) {
       const url = new URL(urlStr);
-      const posixPathParts = url.pathname.split("/");
 
       let filePath: string;
       if (url.protocol === "file:") {
-        filePath = join("local", ...posixPathParts);
+        filePath = `local/${url.pathname}`;
       } else {
         let hash = originToHash.get(url.origin);
         if (hash === undefined) {
           hash = await hashShortSha1(url.origin);
           originToHash.set(url.origin, hash);
         }
-        filePath = join("remote", hash, ...posixPathParts);
+        filePath = `remote/${hash}/${url.pathname}`;
       }
       modules.push({ filePath, url, source });
     }
@@ -143,7 +142,12 @@ export function testTranspile(
 
     const snapshotEntries: [string, string][] = modules.map((
       { filePath, source },
-    ): [string, string] => [filePath, source]).concat(
+    ): [string, string] => {
+      // The file path is a POSIX path, for stability, but we need an
+      // OS-specific one so we can read and write the actual file.
+      const osFilePath = join(...filePath.split("/"));
+      return [osFilePath, source];
+    }).concat(
       [
         [
           "modules.json",
