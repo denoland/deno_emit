@@ -110,14 +110,14 @@ export function testTranspile(
 
       let filePath: string;
       if (url.protocol === "file:") {
-        filePath = `local/${url.pathname}`;
+        filePath = `local${url.pathname}`;
       } else {
         let hash = originToHash.get(url.origin);
         if (hash === undefined) {
           hash = await hashShortSha1(url.origin);
           originToHash.set(url.origin, hash);
         }
-        filePath = `remote/${hash}/${url.pathname}`;
+        filePath = `remote/${hash}${url.pathname}`;
       }
       modules.push({ filePath, url, source });
     }
