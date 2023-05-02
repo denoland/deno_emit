@@ -14,8 +14,8 @@ Deno.test({
   fn: testBundle(
     resolveFixture("json_import.ts"),
     undefined,
-    async ({ bundlePath }) => {
-      const output = await runModule(bundlePath);
+    async ({ outputFileUrl }) => {
+      const output = await runModule(outputFileUrl);
       assertStringIncludes(output, "with space");
     },
   ),
@@ -26,8 +26,8 @@ Deno.test({
   fn: testBundle(
     resolveFixture("json_import_escape.ts"),
     undefined,
-    async ({ bundlePath, result }) => {
-      const output = await runModule(bundlePath);
+    async ({ outputFileUrl, result }) => {
+      const output = await runModule(outputFileUrl);
       assertStringIncludes(
         output,
         "a value with newline\n, \"double quotes\", 'single quotes', ${jsInterpolation} and `string literal`",
@@ -51,8 +51,8 @@ Deno.test({
   fn: testBundle(
     resolveFixture("circular1.ts"),
     undefined,
-    async ({ bundlePath }) => {
-      const output = await runModule(bundlePath);
+    async ({ outputFileUrl }) => {
+      const output = await runModule(outputFileUrl);
       assertEquals(output, "f2\nf1\n");
     },
   ),

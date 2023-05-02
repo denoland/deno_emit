@@ -44,22 +44,22 @@ type CommonOptions = CollapsedUnion<TranspileOptions, BundleOptions>;
 
 type TranspileResult = Awaited<ReturnType<typeof transpile>>;
 interface TestTranspileOutput {
+  outputFileUrl: string;
   result: TranspileResult;
   rootUrl: string;
-  transpiledRootPath: string;
   modulesPaths: Record<string, string>;
   denoConfigPath: string;
 }
 
 type BundleResult = Awaited<ReturnType<typeof bundle>>;
 interface TestBundleOutput {
+  outputFileUrl: string;
   result: BundleResult;
-  bundlePath: string;
   sourceMapPath?: string;
 }
 
 interface CommonOutput {
-  outputPath: string;
+  outputFileUrl: string;
   outputCode: string;
   denoConfigPath?: string;
   functionCalled: "transpile" | "bundle";
@@ -179,9 +179,9 @@ export function testTranspile(
       );
       const denoConfigPath = resolve(testDir, "deno.json");
       const output: TestTranspileOutput = {
+        outputFileUrl: toFileUrl(modulesPaths[normalizedRoot]).toString(),
         result,
         rootUrl: normalizedRoot,
-        transpiledRootPath: modulesPaths[normalizedRoot],
         modulesPaths,
         denoConfigPath,
       };
@@ -239,8 +239,8 @@ export function testBundle(
 
     if (more) {
       const output: TestBundleOutput = {
+        outputFileUrl: toFileUrl(bundlePath).toString(),
         result,
-        bundlePath,
         sourceMapPath: result.map ? sourceMapPath : undefined,
       };
       await more(output, t);
@@ -265,7 +265,7 @@ export function testTranspileAndBundle(
         more
           ? (output, t) => {
             return more({
-              outputPath: output.bundlePath,
+              outputFileUrl: output.outputFileUrl,
               outputCode: output.result.code,
               functionCalled: "bundle",
             }, t);
@@ -281,7 +281,7 @@ export function testTranspileAndBundle(
         more
           ? (output, t) => {
             return more({
-              outputPath: output.transpiledRootPath,
+              outputFileUrl: output.outputFileUrl,
               outputCode: output.result[output.rootUrl],
               denoConfigPath: output.denoConfigPath,
               functionCalled: "transpile",
@@ -529,7 +529,7 @@ export async function runCode(
 
 /**
  * Runs the script at the provided path with `deno run`. Success is expected.
- * @param modulePath
+ * @param modulePath file path or file url to the script to run
  * @returns output of `deno run`
  */
 export async function runModule(
@@ -552,7 +552,7 @@ async function makeTempFile(content?: string): Promise<string> {
   if (typeof content === "string") {
     await Deno.writeTextFile(tempFilePath, content);
   }
-  return tempFilePath;
+  return toFileUrl(tempFilePath).toString();
 }
 
 async function denoRun(
@@ -561,6 +561,9 @@ async function denoRun(
 ): Promise<
   { success: boolean; code: number; output: string; stderrOutput: string }
 > {
+  modulePath = modulePath.startsWith("file:")
+    ? fromFileUrl(modulePath)
+    : modulePath;
   const command = new Deno.Command(Deno.execPath(), {
     args: ["run", modulePath].concat(
       configPath ? ["--config", configPath] : [],

@@ -21,8 +21,8 @@ Deno.test({
   fn: testTranspileAndBundle(
     resolveFixture("hello_world.ts"),
     undefined,
-    async ({ outputPath }) => {
-      const output = await runModule(outputPath);
+    async ({ outputFileUrl }) => {
+      const output = await runModule(outputFileUrl);
       assertEquals(output, "Hello world!\n");
     },
   ),
@@ -79,9 +79,9 @@ Deno.test({
   fn: testTranspileAndBundle(
     resolveFixture("mod1.ts"),
     undefined,
-    async ({ outputPath, denoConfigPath }) => {
+    async ({ outputFileUrl, denoConfigPath }) => {
       const output = await runCode(
-        `import { printHello3 } from "${outputPath}";\n printHello3();`,
+        `import { printHello3 } from "${outputFileUrl}";\n printHello3();`,
         denoConfigPath,
       );
       assertEquals(output, "Hello\n");
@@ -97,9 +97,9 @@ Deno.test({
   fn: testTranspileAndBundle(
     resolveFixture("top_level_await.ts"),
     undefined,
-    async ({ outputPath, denoConfigPath }) => {
+    async ({ outputFileUrl, denoConfigPath }) => {
       const output = await runCode(
-        `import { tla } from "${outputPath}";\n console.log(tla);`,
+        `import { tla } from "${outputFileUrl}";\n console.log(tla);`,
         denoConfigPath,
       );
       assertEquals(output, "Hello\n");
@@ -112,8 +112,8 @@ Deno.test({
   fn: testTranspileAndBundle(
     resolveFixture("js_module.js"),
     undefined,
-    async ({ outputPath, denoConfigPath }) => {
-      await runModule(outputPath, denoConfigPath);
+    async ({ outputFileUrl, denoConfigPath }) => {
+      await runModule(outputFileUrl, denoConfigPath);
     },
   ),
 });
@@ -123,8 +123,8 @@ Deno.test({
   fn: testTranspileAndBundle(
     resolveFixture("dynamic_import.ts"),
     undefined,
-    async ({ outputPath, denoConfigPath }) => {
-      const output = await runModule(outputPath, denoConfigPath);
+    async ({ outputFileUrl, denoConfigPath }) => {
+      const output = await runModule(outputFileUrl, denoConfigPath);
       assertEquals(output, "Hello\n");
     },
   ),
@@ -157,9 +157,9 @@ Deno.test({
     {
       // importMap: resolveFixture("import_map/import_map.json"),
     },
-    async ({ outputPath, denoConfigPath }) => {
+    async ({ outputFileUrl, denoConfigPath }) => {
       const output = await runCode(
-        `import { printHello3 } from "${outputPath}";\n printHello3();`,
+        `import { printHello3 } from "${outputFileUrl}";\n printHello3();`,
         denoConfigPath,
       );
       assertEquals(output, "Hello\n");
