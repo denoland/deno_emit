@@ -43,27 +43,28 @@ type CollapsedUnion<A, B> = { [key in keyof (A | B)]: A[key] & B[key] };
 type CommonOptions = CollapsedUnion<TranspileOptions, BundleOptions>;
 
 type TranspileResult = Awaited<ReturnType<typeof transpile>>;
-interface TestTranspileOutput {
-  outputFileUrl: string;
-  result: TranspileResult;
+type BundleResult = Awaited<ReturnType<typeof bundle>>;
+
+interface CommonTestOutput<F extends "transpile" | "bundle"> {
+  functionCalled: F;
   rootUrl: string;
+  outputFileUrl: string;
+  outputCode: string;
+  denoConfigPath?: string;
+}
+
+interface TranspileTestOutput extends CommonTestOutput<"transpile"> {
+  result: TranspileResult;
   modulesPaths: Record<string, string>;
   denoConfigPath: string;
 }
 
-type BundleResult = Awaited<ReturnType<typeof bundle>>;
-interface TestBundleOutput {
-  outputFileUrl: string;
+interface BundleTestOutput extends CommonTestOutput<"bundle"> {
   result: BundleResult;
   sourceMapPath?: string;
 }
 
-interface CommonOutput {
-  outputFileUrl: string;
-  outputCode: string;
-  denoConfigPath?: string;
-  functionCalled: "transpile" | "bundle";
-}
+type EmitTestOutput = TranspileTestOutput | BundleTestOutput;
 
 /**
  * Calls `transpile` with the provided parameters and checks that the output is
@@ -82,7 +83,7 @@ export function testTranspile(
   root: string | URL,
   options?: TranspileOptions,
   more?: (
-    output: TestTranspileOutput,
+    output: TranspileTestOutput,
     t: Deno.TestContext,
   ) => void | Promise<void>,
 ) {
@@ -178,10 +179,12 @@ export function testTranspile(
         }),
       );
       const denoConfigPath = resolve(testDir, "deno.json");
-      const output: TestTranspileOutput = {
-        outputFileUrl: toFileUrl(modulesPaths[normalizedRoot]).toString(),
-        result,
+      const output: TranspileTestOutput = {
+        functionCalled: "transpile",
         rootUrl: normalizedRoot,
+        outputFileUrl: toFileUrl(modulesPaths[normalizedRoot]).toString(),
+        outputCode: result[normalizedRoot],
+        result,
         modulesPaths,
         denoConfigPath,
       };
@@ -204,7 +207,7 @@ export function testBundle(
   root: string | URL,
   options?: BundleOptions,
   more?: (
-    output: TestBundleOutput,
+    output: BundleTestOutput,
     t: Deno.TestContext,
   ) => void | Promise<void>,
 ) {
@@ -238,7 +241,13 @@ export function testBundle(
     );
 
     if (more) {
-      const output: TestBundleOutput = {
+      const normalizedRoot = normalizeIfFileUrl(
+        (root instanceof URL ? root : toFileUrl(resolve(root))).toString(),
+      );
+      const output: BundleTestOutput = {
+        functionCalled: "bundle",
+        rootUrl: normalizedRoot,
+        outputCode: result.code,
         outputFileUrl: toFileUrl(bundlePath).toString(),
         result,
         sourceMapPath: result.map ? sourceMapPath : undefined,
@@ -252,7 +261,7 @@ export function testTranspileAndBundle(
   root: string | URL,
   options?: CommonOptions,
   more?: (
-    output: CommonOutput,
+    output: EmitTestOutput,
     t: Deno.TestContext,
   ) => void | Promise<void>,
 ) {
@@ -262,15 +271,7 @@ export function testTranspileAndBundle(
       fn: testBundle(
         root,
         options,
-        more
-          ? (output, t) => {
-            return more({
-              outputFileUrl: output.outputFileUrl,
-              outputCode: output.result.code,
-              functionCalled: "bundle",
-            }, t);
-          }
-          : undefined,
+        more,
       ),
     });
     await t.step({
@@ -278,16 +279,7 @@ export function testTranspileAndBundle(
       fn: testTranspile(
         root,
         options,
-        more
-          ? (output, t) => {
-            return more({
-              outputFileUrl: output.outputFileUrl,
-              outputCode: output.result[output.rootUrl],
-              denoConfigPath: output.denoConfigPath,
-              functionCalled: "transpile",
-            }, t);
-          }
-          : undefined,
+        more,
       ),
     });
   };
