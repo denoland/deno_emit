@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "mod2": "../subdir/mod2.ts"
+  }
+}

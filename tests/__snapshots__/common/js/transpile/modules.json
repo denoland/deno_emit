@@ -1,0 +1,4 @@
+{
+  "file:///js_module.js": "local/js_module.js",
+  "file:///subdir/foo.js": "local/subdir/foo.js"
+}

@@ -1,0 +1,8 @@
+import { printHello } from "./print_hello.ts";
+export function returnsFoo() {
+    return "Foo";
+}
+export function printHello2() {
+    printHello();
+}
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vc3ViZGlyL21vZDIudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgcHJpbnRIZWxsbyB9IGZyb20gXCIuL3ByaW50X2hlbGxvLnRzXCI7XG5cbmV4cG9ydCBmdW5jdGlvbiByZXR1cm5zRm9vKCk6IHN0cmluZyB7XG4gIHJldHVybiBcIkZvb1wiO1xufVxuXG5leHBvcnQgZnVuY3Rpb24gcHJpbnRIZWxsbzIoKSB7XG4gIHByaW50SGVsbG8oKTtcbn1cbiJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSxTQUFTLFVBQVUsUUFBUSxtQkFBbUI7QUFFOUMsT0FBTyxTQUFTLGFBQXFCO0lBQ25DLE9BQU87QUFDVCxDQUFDO0FBRUQsT0FBTyxTQUFTLGNBQWM7SUFDNUI7QUFDRixDQUFDIn0=

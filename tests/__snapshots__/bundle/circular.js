@@ -1,0 +1,10 @@
+function f1() {
+    console.log("f1");
+}
+function f2() {
+    console.log("f2");
+}
+f2();
+f1();
+export { f1 as f1 };
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vY2lyY3VsYXIxLnRzIiwiZmlsZTovLy9zdWJkaXIvY2lyY3VsYXIyLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCAqIGFzIGNpcmN1bGFyMiBmcm9tIFwiLi9zdWJkaXIvY2lyY3VsYXIyLnRzXCI7XG5cbmV4cG9ydCBmdW5jdGlvbiBmMSgpIHtcbiAgY29uc29sZS5sb2coXCJmMVwiKTtcbn1cblxuY2lyY3VsYXIyLmYyKCk7XG4iLCJpbXBvcnQgKiBhcyBjaXJjdWxhcjEgZnJvbSBcIi4uL2NpcmN1bGFyMS50c1wiO1xuXG5leHBvcnQgZnVuY3Rpb24gZjIoKSB7XG4gIGNvbnNvbGUubG9nKFwiZjJcIik7XG59XG5cbmNpcmN1bGFyMS5mMSgpO1xuIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUVPLFNBQVMsS0FBSztJQUNuQixRQUFRLEdBQUcsQ0FBQztBQUNkO0FDRk8sU0FBUyxLQUFLO0lBQ25CLFFBQVEsR0FBRyxDQUFDO0FBQ2Q7QURFQTtBQ0FBO0FESkEsU0FBZ0IsTUFBQSxLQUVmIn0=

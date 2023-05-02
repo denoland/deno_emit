@@ -1,0 +1,3 @@
+import app from "./subdir/app.jsx";
+console.log(app);
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vanN4X2ltcG9ydF9mcm9tX3RzLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBhcHAgZnJvbSBcIi4vc3ViZGlyL2FwcC5qc3hcIjtcblxuY29uc29sZS5sb2coYXBwKTtcbiJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSxPQUFPLFNBQVMsbUJBQW1CO0FBRW5DLFFBQVEsR0FBRyxDQUFDIn0=

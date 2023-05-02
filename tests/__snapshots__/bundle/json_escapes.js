@@ -1,6 +1,0 @@
-const __default = JSON.parse("{\n  \"key\": \"a value with newline\\n, \\\"double quotes\\\", 'single quotes', and ${jsInterpolation}\"\n}");
-function payload() {
-    return JSON.stringify(__default);
-}
-export { payload as default };
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vdGVzdGRhdGEvZXNjYXBlLmpzb24iLCJmaWxlOi8vL3Rlc3RkYXRhL2VzY2FwZS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJleHBvcnQgZGVmYXVsdCBKU09OLnBhcnNlKFwie1xcbiAgXFxcImtleVxcXCI6IFxcXCJhIHZhbHVlIHdpdGggbmV3bGluZVxcXFxuLCBcXFxcXFxcImRvdWJsZSBxdW90ZXNcXFxcXFxcIiwgJ3NpbmdsZSBxdW90ZXMnLCBhbmQgJHtqc0ludGVycG9sYXRpb259XFxcIlxcbn1cIik7IiwiaW1wb3J0IGogZnJvbSBcIi4vZXNjYXBlLmpzb25cIiBhc3NlcnQgeyB0eXBlOiBcImpzb25cIiB9O1xuXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBwYXlsb2FkKCk6IHN0cmluZyB7XG4gIHJldHVybiBKU09OLnN0cmluZ2lmeShqKTtcbn1cbiJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoia0JBQWUsS0FBSyxLQUFLLENBQUM7QUNFWCxTQUFTLFVBQWtCO0lBQ3hDLE9BQU8sS0FBSyxTQUFTO0FBQ3ZCO0FBRkEsOEJBRUMifQ==

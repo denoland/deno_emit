@@ -1,0 +1,3 @@
+const tla = await Promise.resolve("Hello");
+export { tla as tla };
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vdG9wX2xldmVsX2F3YWl0LnRzIl0sInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCBjb25zdCB0bGEgPSBhd2FpdCBQcm9taXNlLnJlc29sdmUoXCJIZWxsb1wiKTtcbiJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBTyxNQUFNLE1BQU0sTUFBTSxRQUFRLE9BQU8sQ0FBQztBQUF6QyxTQUFhLE9BQUEsTUFBcUMifQ==

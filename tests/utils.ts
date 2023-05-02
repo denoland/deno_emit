@@ -1,5 +1,6 @@
 import {
   fromFileUrl,
+  join,
   parse,
   relative,
   resolve,
@@ -10,7 +11,12 @@ import {
   ensureFile,
   existsSync,
 } from "https://deno.land/std@0.182.0/fs/mod.ts";
-import { AssertionError } from "https://deno.land/std@0.182.0/testing/asserts.ts";
+import {
+  assert,
+  assertArrayIncludes,
+  assertEquals,
+  AssertionError,
+} from "https://deno.land/std@0.182.0/testing/asserts.ts";
 import {
   buildMessage,
   diffstr,
@@ -33,18 +39,32 @@ const inlineSourceMapRegex =
 // Tracks which snapshots are involved in order to identify conflicts.
 const tracker: Set<string> = new Set();
 
+type CollapsedUnion<A, B> = { [key in keyof (A | B)]: A[key] & B[key] };
+type CommonOptions = CollapsedUnion<TranspileOptions, BundleOptions>;
+
 type TranspileResult = Awaited<ReturnType<typeof transpile>>;
-interface TestTranspileOutput {
-  result: TranspileResult;
-  modulesPaths: Record<string, string>;
+type BundleResult = Awaited<ReturnType<typeof bundle>>;
+
+interface CommonTestOutput<F extends "transpile" | "bundle"> {
+  functionCalled: F;
+  rootUrl: string;
+  outputFileUrl: string;
+  outputCode: string;
+  denoConfigPath?: string;
 }
 
-type BundleResult = Awaited<ReturnType<typeof bundle>>;
-interface TestBundleOutput {
+interface TranspileTestOutput extends CommonTestOutput<"transpile"> {
+  result: TranspileResult;
+  modulesPaths: Record<string, string>;
+  denoConfigPath: string;
+}
+
+interface BundleTestOutput extends CommonTestOutput<"bundle"> {
   result: BundleResult;
-  bundlePath: string;
   sourceMapPath?: string;
 }
+
+type EmitTestOutput = TranspileTestOutput | BundleTestOutput;
 
 /**
  * Calls `transpile` with the provided parameters and checks that the output is
@@ -63,34 +83,82 @@ export function testTranspile(
   root: string | URL,
   options?: TranspileOptions,
   more?: (
-    output: TestTranspileOutput,
+    output: TranspileTestOutput,
     t: Deno.TestContext,
   ) => void | Promise<void>,
 ) {
   return async function (t: Deno.TestContext): Promise<void> {
     const result = fixTranspileResult(await transpile(root, options));
 
-    const testDir = resolve(getSnapshotDir(t), getTestName(t));
+    const normalizedRoot = normalizeIfFileUrl(
+      (root instanceof URL ? root : toFileUrl(resolve(root))).toString(),
+    );
 
-    const modules = await Promise.all(
-      Object.entries(result).map(async ([url, source]) => {
-        const hash = await hashShortSha1(url);
-        const fileName = `${hash}.js`;
-        return { fileName, url, source };
+    assertArrayIncludes(Object.keys(result), [normalizedRoot]);
+
+    const testDir = resolve(getSnapshotDir(t), ...getTestPath(t));
+
+    // We want to write the modules to disk, so we'll need to assign them a
+    // file path consistent between runs.
+    const modules: { filePath: string; url: URL; source: string }[] = [];
+
+    // For remote URLs, the origin is likely to contain special characters that
+    // are annoying to handle in the file system, so we hash it.
+    const originToHash: Map<string, string> = new Map();
+
+    for (const [urlStr, source] of Object.entries(result)) {
+      const url = new URL(urlStr);
+
+      let filePath: string;
+      if (url.protocol === "file:") {
+        filePath = `local${url.pathname}`;
+      } else {
+        let hash = originToHash.get(url.origin);
+        if (hash === undefined) {
+          hash = await hashShortSha1(url.origin);
+          originToHash.set(url.origin, hash);
+        }
+        filePath = `remote/${hash}${url.pathname}`;
+      }
+      modules.push({ filePath, url, source });
+    }
+
+    // We need to record the result in a serializable format that references
+    // the modules by their location on disk.
+    const modulesRecord: Record<string, string> = Object.fromEntries(
+      modules.map(({ filePath, url }) => {
+        return [url, filePath];
       }),
     );
-    const modulesSnapshotEntries: [string, string][] = modules.map((
-      { fileName, source },
-    ) => [fileName, source]);
-    // The keys need to be sorted in order to have consistency between runs.
-    const mapping: Record<string, string> = Object.fromEntries(
-      modules.map(({ fileName, url }) => {
-        return [url, fileName];
-      }).sort((a, b) => {
-        if (a[0] > b[0]) return 1;
-        if (a[0] < b[0]) return -1;
-        return 0;
-      }),
+
+    // We also generate a config file with an import map so that the modules
+    // are runnable.
+    const denoConfig = {
+      imports: Object.fromEntries(
+        Array.from(originToHash).map(([origin, hash]) => {
+          return [origin, `./remote/${hash}`];
+        }),
+      ),
+    };
+
+    const snapshotEntries: [string, string][] = modules.map((
+      { filePath, source },
+    ): [string, string] => {
+      // The file path is a POSIX path, for stability, but we need an
+      // OS-specific one so we can read and write the actual file.
+      const osFilePath = join(...filePath.split("/"));
+      return [osFilePath, source];
+    }).concat(
+      [
+        [
+          "modules.json",
+          JSON.stringify(modulesRecord, null, 2) + "\n",
+        ],
+        [
+          "deno.json",
+          JSON.stringify(denoConfig, null, 2) + "\n",
+        ],
+      ],
     );
 
     const snapshotMode =
@@ -98,26 +166,27 @@ export function testTranspile(
         ? getMode()
         : "update";
 
-    await assertSnapshot(
-      resolve(testDir, "mapping.json"),
-      JSON.stringify(mapping, null, 2) + "\n",
-      snapshotMode,
-    );
     await assertSnapshots(
-      resolve(testDir, "modules"),
-      modulesSnapshotEntries,
+      resolve(testDir),
+      snapshotEntries,
       snapshotMode,
     );
 
     if (more) {
-      const output: TestTranspileOutput = {
+      const modulesPaths = Object.fromEntries(
+        Object.entries(modulesRecord).map(([url, posixRelativePath]) => {
+          return [url, resolve(testDir, ...posixRelativePath.split("/"))];
+        }),
+      );
+      const denoConfigPath = resolve(testDir, "deno.json");
+      const output: TranspileTestOutput = {
+        functionCalled: "transpile",
+        rootUrl: normalizedRoot,
+        outputFileUrl: toFileUrl(modulesPaths[normalizedRoot]).toString(),
+        outputCode: result[normalizedRoot],
         result,
-        modulesPaths: Object.fromEntries(
-          Object.entries(mapping).map(([url, filename]) => {
-            const filepath = resolve(testDir, "modules", filename);
-            return [url, filepath];
-          }),
-        ),
+        modulesPaths,
+        denoConfigPath,
       };
       await more(output, t);
     }
@@ -138,18 +207,23 @@ export function testBundle(
   root: string | URL,
   options?: BundleOptions,
   more?: (
-    output: TestBundleOutput,
+    output: BundleTestOutput,
     t: Deno.TestContext,
   ) => void | Promise<void>,
 ) {
   return async function (t: Deno.TestContext): Promise<void> {
     const result = fixBundleResult(await bundle(root, options));
 
-    const testName = getTestName(t);
+    const testPath = getTestPath(t);
+    const testName = testPath.pop();
     const snapshotDir = getSnapshotDir(t);
 
-    const bundlePath = resolve(snapshotDir, `${testName}.js`);
-    const sourceMapPath = resolve(snapshotDir, `${testName}.js.map`);
+    const bundlePath = resolve(snapshotDir, ...testPath, `${testName}.js`);
+    const sourceMapPath = resolve(
+      snapshotDir,
+      ...testPath,
+      `${testName}.js.map`,
+    );
 
     const snapshotMode =
       existsSync(snapshotDir, { isReadable: true, isDirectory: true })
@@ -167,13 +241,47 @@ export function testBundle(
     );
 
     if (more) {
-      const output: TestBundleOutput = {
+      const normalizedRoot = normalizeIfFileUrl(
+        (root instanceof URL ? root : toFileUrl(resolve(root))).toString(),
+      );
+      const output: BundleTestOutput = {
+        functionCalled: "bundle",
+        rootUrl: normalizedRoot,
+        outputCode: result.code,
+        outputFileUrl: toFileUrl(bundlePath).toString(),
         result,
-        bundlePath,
         sourceMapPath: result.map ? sourceMapPath : undefined,
       };
       await more(output, t);
     }
+  };
+}
+
+export function testTranspileAndBundle(
+  root: string | URL,
+  options?: CommonOptions,
+  more?: (
+    output: EmitTestOutput,
+    t: Deno.TestContext,
+  ) => void | Promise<void>,
+) {
+  return async function (t: Deno.TestContext): Promise<void> {
+    await t.step({
+      name: "bundle",
+      fn: testBundle(
+        root,
+        options,
+        more,
+      ),
+    });
+    await t.step({
+      name: "transpile",
+      fn: testTranspile(
+        root,
+        options,
+        more,
+      ),
+    });
   };
 }
 
@@ -270,15 +378,15 @@ function getMode(): SnapshotMode {
 // Note that there can be conflicts; different tests can output the same test
 // name. It is not ideal but it shouldn't happen in normal circumstances, and
 // assertSnapshot will throw if it ever causes snapshots to clash.
-function getTestName(
+function getTestPath(
   context: Deno.TestContext,
-): string {
+): string[] {
   // Avoiding special characters other than dash and underscore
-  let name = slugify(context.name);
-  if (context.parent) {
-    name = `${getTestName(context.parent)}__${name}`;
+  const name = slugify(context.name);
+  if (!context.parent) {
+    return [name];
   }
-  return name;
+  return [...getTestPath(context.parent), name];
 }
 
 function slugify(name: string): string {
@@ -320,22 +428,37 @@ function normalizeIfFileUrl(urlString: string): string {
     const path = fromFileUrl(url);
     // We prepend with the separator instead of using `resolve()` because, on
     // Windows, this adds the device prefix (e.g. `C:`), which we don't want.
-    const normalizedPath = SEP + relative(Deno.cwd(), path);
+    const normalizedPath = SEP + relative(join(Deno.cwd(), "testdata"), path);
     return toFileUrl(normalizedPath).toString();
   }
   return url.toString();
 }
 
-// We need to normalize the source map URLs because they are absolute paths.
+// We need to normalize the file URLs because they contain absolute paths, which
+// are device-dependent.
 
+/**
+ * Transpile results are not stable between runs because:
+ * - The record is indexed by the URLs of the modules; but those contain
+ * absolute file paths, which are device-dependent.
+ * - The code can contain inline source maps, which also contain absolute
+ * file paths.
+ * - The ordering of keys is not guaranteed.
+ *
+ * This function fixes those issues.
+ */
 function fixTranspileResult(result: TranspileResult): TranspileResult {
   return Object.fromEntries(
     Object.entries(result).map((
       [url, source],
-    ) => {
-      source = fixInlineSourceMap(source);
+    ): [string, string] => {
       url = normalizeIfFileUrl(url);
+      source = fixInlineSourceMap(source);
       return [url, source];
+    }).sort((a, b) => {
+      if (a[0] > b[0]) return 1;
+      if (a[0] < b[0]) return -1;
+      return 0;
     }),
   );
 }
@@ -381,4 +504,70 @@ async function hashShortSha1(input: string): Promise<string> {
       textEncoder.encode(input),
     ),
   );
+}
+
+/**
+ * Creates a temporary file with the provided code and runs it with `deno run`.
+ * @param code
+ * @returns output of `deno run`
+ */
+export async function runCode(
+  code: string,
+  configPath?: string,
+): Promise<string> {
+  const tempFile = await makeTempFile(code);
+  return runModule(tempFile, configPath);
+}
+
+/**
+ * Runs the script at the provided path with `deno run`. Success is expected.
+ * @param modulePath file path or file url to the script to run
+ * @returns output of `deno run`
+ */
+export async function runModule(
+  modulePath: string,
+  configPath?: string,
+): Promise<string> {
+  const { success, output, stderrOutput } = await denoRun(
+    modulePath,
+    configPath,
+  );
+  assertEquals(stderrOutput, "", "deno run does not output to stderr");
+  assert(success, "deno run succeeds");
+  return output;
+}
+
+async function makeTempFile(content?: string): Promise<string> {
+  const tempFilePath = await Deno.makeTempFile({
+    prefix: "deno_emit_bundle_test",
+  });
+  if (typeof content === "string") {
+    await Deno.writeTextFile(tempFilePath, content);
+  }
+  return toFileUrl(tempFilePath).toString();
+}
+
+async function denoRun(
+  modulePath: string,
+  configPath?: string,
+): Promise<
+  { success: boolean; code: number; output: string; stderrOutput: string }
+> {
+  modulePath = modulePath.startsWith("file:")
+    ? fromFileUrl(modulePath)
+    : modulePath;
+  const command = new Deno.Command(Deno.execPath(), {
+    args: ["run", modulePath].concat(
+      configPath ? ["--config", configPath] : [],
+    ),
+    cwd: Deno.cwd(),
+    stdin: "null",
+    stdout: "piped",
+    stderr: "piped",
+  });
+  const process = command.spawn();
+  const { success, code, stdout, stderr } = await process.output();
+  const output = textDecoder.decode(stdout);
+  const stderrOutput = textDecoder.decode(stderr);
+  return { success, code, output, stderrOutput };
 }

@@ -1,0 +1,5 @@
+{
+  "file:///mod1.ts": "local/mod1.ts",
+  "file:///subdir/mod2.ts": "local/subdir/mod2.ts",
+  "file:///subdir/print_hello.ts": "local/subdir/print_hello.ts"
+}
