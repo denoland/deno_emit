@@ -9,8 +9,8 @@ use deno_graph::BuildOptions;
 use deno_graph::CapturingModuleAnalyzer;
 use deno_graph::ModuleGraph;
 use deno_graph::ParsedSourceStore;
-use deno_graph::ReferrerImports;
 use std::collections::HashMap;
+use url::Url;
 
 pub use emit::bundle_graph;
 pub use emit::BundleEmit;
@@ -23,24 +23,22 @@ pub use deno_ast::ImportsNotUsedAsValues;
 pub use deno_ast::ModuleSpecifier;
 pub use deno_graph::source::LoadFuture;
 pub use deno_graph::source::Loader;
+pub use import_map::ImportMap;
 
 pub async fn bundle(
   root: ModuleSpecifier,
   loader: &mut dyn Loader,
-  maybe_imports_map: Option<Vec<(ModuleSpecifier, Vec<String>)>>,
+  maybe_import_map: Option<ImportMap>,
   options: BundleOptions,
 ) -> Result<BundleEmit> {
+  let import_map_resolver = ImportMapResolver(maybe_import_map);
   let mut graph = ModuleGraph::default();
   graph
     .build(
       vec![root],
       loader,
       BuildOptions {
-        imports: maybe_imports_map
-          .unwrap_or_default()
-          .into_iter()
-          .map(|(referrer, imports)| (ReferrerImports { referrer, imports }))
-          .collect(),
+        resolver: Some(import_map_resolver.as_resolver()),
         ..Default::default()
       },
     )
@@ -52,9 +50,11 @@ pub async fn bundle(
 pub async fn transpile(
   root: ModuleSpecifier,
   loader: &mut dyn Loader,
+  maybe_import_map: Option<ImportMap>,
   options: TranspileOptions,
 ) -> Result<HashMap<String, String>> {
   let analyzer = CapturingModuleAnalyzer::default();
+  let import_map_resolver = ImportMapResolver(maybe_import_map);
   let mut graph = ModuleGraph::default();
   graph
     .build(
@@ -62,6 +62,7 @@ pub async fn transpile(
       loader,
       BuildOptions {
         module_analyzer: Some(&analyzer),
+        resolver: Some(import_map_resolver.as_resolver()),
         ..Default::default()
       },
     )
@@ -90,4 +91,44 @@ pub async fn transpile(
   }
 
   Ok(map)
+}
+
+pub fn parse_import_map(base_url: &str, json_str: &str) -> Result<ImportMap> {
+  let base_url = Url::parse(base_url)?;
+  let import_map = import_map::parse_from_json(&base_url, json_str)?.import_map;
+  Ok(import_map)
+}
+
+#[derive(Debug)]
+struct ImportMapResolver(Option<import_map::ImportMap>);
+
+impl ImportMapResolver {
+  pub fn as_resolver(&self) -> &dyn deno_graph::source::Resolver {
+    self
+  }
+}
+
+impl deno_graph::source::Resolver for ImportMapResolver {
+  fn resolve(
+    &self,
+    specifier: &str,
+    referrer: &ModuleSpecifier,
+  ) -> Result<ModuleSpecifier, anyhow::Error> {
+    let maybe_import_map = &self.0;
+
+    let maybe_import_map_err = match maybe_import_map
+      .as_ref()
+      .map(|import_map| import_map.resolve(specifier, referrer))
+    {
+      Some(Ok(value)) => return Ok(value),
+      Some(Err(err)) => Some(err),
+      None => None,
+    };
+
+    if let Some(err) = maybe_import_map_err {
+      Err(err.into())
+    } else {
+      deno_graph::resolve_import(specifier, referrer).map_err(|err| err.into())
+    }
+  }
 }

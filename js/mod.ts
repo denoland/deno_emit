@@ -54,17 +54,25 @@ export interface BundleOptions {
   allowRemote?: boolean;
   /** The cache root to use, overriding the default inferred `DENO_DIR`. */
   cacheRoot?: string;
+  /** Base URL to resolve import map specifiers. Defaults to `Deno.cwd()`.
+   * Ignored if `imports` is not set. */
+  baseUrl?: URL | string;
   /** The setting to use when loading sources from the Deno cache. */
   cacheSetting?: CacheSetting;
   /** Compiler options which can be set when bundling. */
   compilerOptions?: CompilerOptions;
-  imports?: Record<string, string[]>;
+  /** Location of an import map */
+  importMap?: URL | string;
+  /** Specifiers of an import map. Takes precedence over `importMap`. */
+  imports?: Record<string, string>;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
   load?: FetchCacher["load"];
   /** Should the emitted bundle be an ES module or an IIFE script. The default
    * is `"module"` to output a ESM module. */
+  /** Import map scopes. Takes precedence over `importMap`. */
+  scopes?: Record<string, Record<string, string>>;
   type?: "module" | "classic";
 }
 
@@ -72,17 +80,25 @@ export interface BundleOptions {
 export interface TranspileOptions {
   /** Allow remote modules to be loaded or read from the cache. */
   allowRemote?: boolean;
+  /** Base URL to resolve import map specifiers. Defaults to `Deno.cwd()`.
+   * Ignored if `imports` is not set. */
+  baseUrl?: URL | string;
   /** The cache root to use, overriding the default inferred `DENO_DIR`. */
   cacheRoot?: string;
   /** The setting to use when loading sources from the Deno cache. */
   cacheSetting?: CacheSetting;
   /** Compiler options which can be set when transpiling. */
   compilerOptions?: CompilerOptions;
-  //imports: Record<string, string[]>;
+  /** Location of an import map */
+  importMap?: URL | string;
+  /** Specifiers of an import map. Takes precedence over `importMap`. */
+  imports?: Record<string, string>;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
   load?: FetchCacher["load"];
+  /** Import map scopes. Takes precedence over `importMap`. */
+  scopes?: Record<string, Record<string, string>>;
   //type?: "module" | "classic";
 }
 
@@ -143,29 +159,30 @@ export async function bundle(
   options: BundleOptions = {},
 ): Promise<BundleEmit> {
   const {
-    imports,
-    load,
-    cacheSetting,
-    cacheRoot,
     allowRemote,
-    type,
+    cacheRoot,
+    cacheSetting,
     compilerOptions,
+    load,
+    type,
   } = options;
 
   checkCompilerOptions(compilerOptions);
+
+  root = root instanceof URL ? root : toFileUrl(resolve(root));
 
   let bundleLoad = load;
   if (!bundleLoad) {
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     bundleLoad = cache.load;
   }
-  root = root instanceof URL ? root : toFileUrl(resolve(root));
+  const importMap = await buildImportMap(options);
   const { bundle: jsBundle } = await instantiate();
   const result = await jsBundle(
     root.toString(),
     bundleLoad,
     type,
-    imports,
+    importMap,
     compilerOptions,
   );
   return {
@@ -198,8 +215,14 @@ export async function transpile(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     transpileLoad = cache.load;
   }
+  const importMap = await buildImportMap(options);
   const { transpile: jsTranspile } = await instantiate();
-  return jsTranspile(root.toString(), transpileLoad, compilerOptions);
+  return jsTranspile(
+    root.toString(),
+    transpileLoad,
+    importMap,
+    compilerOptions,
+  );
 }
 
 function checkCompilerOptions(
@@ -221,4 +244,58 @@ function checkCompilerOptions(
       "Option 'inlineSources' can only be used when either option 'inlineSourceMap' or option 'sourceMap' is provided",
     );
   }
+}
+
+interface SerializedImportMap {
+  url: string;
+  value: string;
+}
+
+async function fetchImportMap(
+  urlOrString: URL | string | undefined,
+): Promise<SerializedImportMap | undefined> {
+  if (!urlOrString) return undefined;
+  const url = urlOrString instanceof URL
+    ? urlOrString
+    : toFileUrl(resolve(urlOrString));
+  const fetchImportMapResponse = await fetch(url);
+  const body = await fetchImportMapResponse.json();
+  return {
+    url: url.toString(),
+    value: JSON.stringify({
+      imports: body.imports,
+      scopes: body.scopes,
+    }),
+  };
+}
+
+async function buildImportMap(
+  options: {
+    baseUrl?: URL | string;
+    imports?: Record<string, string>;
+    scopes?: Record<string, Record<string, string>>;
+    importMap?: URL | string;
+  },
+): Promise<SerializedImportMap | undefined> {
+  const { baseUrl, imports, scopes, importMap } = options;
+  if (imports != null || scopes != null) {
+    const url = baseUrl instanceof URL
+      ? new URL(baseUrl.toString())
+      : toFileUrl(baseUrl ? resolve(baseUrl) : Deno.cwd());
+    // Rust lib expects url to be the file URL to the import map file, but the
+    // JS API expects it to be the file URL to the root directory, so we need to
+    // append an extra slash.
+    if (!url.pathname.endsWith("/")) {
+      url.pathname += "/";
+    }
+    return {
+      url: url.toString(),
+      value: JSON.stringify({ imports, scopes }),
+    };
+  }
+  if (importMap != null) {
+    const fetchedImportMap = await fetchImportMap(importMap);
+    return fetchedImportMap;
+  }
+  return undefined;
 }

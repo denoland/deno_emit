@@ -1,0 +1,4 @@
+{
+  "file:///import_map/main.ts": "local/import_map/main.ts",
+  "file:///subdir/foo2.ts": "local/subdir/foo2.ts"
+}
