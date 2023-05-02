@@ -8,6 +8,7 @@ use deno_emit::ImportsNotUsedAsValues;
 use deno_emit::LoadFuture;
 use deno_emit::Loader;
 use deno_emit::ModuleSpecifier;
+use deno_emit::TranspileOptions;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
@@ -187,15 +188,21 @@ pub async fn bundle(
 pub async fn transpile(
   root: String,
   load: js_sys::Function,
-  _options: JsValue,
+  maybe_compiler_options: JsValue,
 ) -> Result<JsValue, JsValue> {
+  let compiler_options: CompilerOptions = maybe_compiler_options
+    .into_serde::<Option<CompilerOptions>>()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
+    .unwrap_or_default();
   let root = ModuleSpecifier::parse(&root)
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
   let mut loader = JsLoader::new(load);
+  let emit_options: EmitOptions = compiler_options.into();
 
-  let map = deno_emit::transpile(root, &mut loader)
-    .await
-    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  let map =
+    deno_emit::transpile(root, &mut loader, TranspileOptions { emit_options })
+      .await
+      .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
 
   JsValue::from_serde(&map)
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))

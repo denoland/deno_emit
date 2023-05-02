@@ -76,7 +76,8 @@ export interface TranspileOptions {
   cacheRoot?: string;
   /** The setting to use when loading sources from the Deno cache. */
   cacheSetting?: CacheSetting;
-  //compilerOptions?: CompilerOptions;
+  /** Compiler options which can be set when transpiling. */
+  compilerOptions?: CompilerOptions;
   //imports: Record<string, string[]>;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
@@ -187,14 +188,18 @@ export async function transpile(
   options: TranspileOptions = {},
 ): Promise<Record<string, string>> {
   root = root instanceof URL ? root : toFileUrl(resolve(root));
-  const { cacheSetting, cacheRoot, allowRemote, load } = options;
+  const { cacheSetting, cacheRoot, allowRemote, load, compilerOptions } =
+    options;
+
+  checkCompilerOptions(compilerOptions);
+
   let transpileLoad = load;
   if (!transpileLoad) {
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     transpileLoad = cache.load;
   }
-  const { transpile } = await instantiate();
-  return transpile(root.toString(), transpileLoad, undefined);
+  const { transpile: jsTranspile } = await instantiate();
+  return jsTranspile(root.toString(), transpileLoad, compilerOptions);
 }
 
 function checkCompilerOptions(

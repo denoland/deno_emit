@@ -1,2 +1,1 @@
 export { foo } from "./subdir/foo.js";
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vanNfbW9kdWxlLmpzIl0sInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCB7IGZvbyB9IGZyb20gXCIuL3N1YmRpci9mb28uanNcIjtcbiJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSxTQUFTLEdBQUcsUUFBUSxrQkFBa0IifQ==
