@@ -72,11 +72,15 @@ Deno.test({
         sourceMap?: boolean;
         inlineSourceMap?: boolean;
         inlineSources?: boolean;
-      };
+      } | undefined;
       outcome: Outcome;
     }
 
     const cases: TestCase[] = [
+      {
+        compilerOptions: undefined,
+        outcome: "no source maps",
+      },
       {
         compilerOptions: {},
         outcome: "no source maps",
