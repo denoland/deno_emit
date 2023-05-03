@@ -54,6 +54,10 @@ pub struct BundleOptions {
   pub emit_ignore_directives: bool,
 }
 
+pub struct TranspileOptions {
+  pub emit_options: EmitOptions,
+}
+
 #[derive(Debug)]
 pub struct BundleEmit {
   pub code: String,

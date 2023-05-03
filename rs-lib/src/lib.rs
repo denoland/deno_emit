@@ -16,6 +16,7 @@ pub use emit::bundle_graph;
 pub use emit::BundleEmit;
 pub use emit::BundleOptions;
 pub use emit::BundleType;
+pub use emit::TranspileOptions;
 
 pub use deno_ast::EmitOptions;
 pub use deno_ast::ImportsNotUsedAsValues;
@@ -27,7 +28,7 @@ pub async fn bundle(
   root: ModuleSpecifier,
   loader: &mut dyn Loader,
   maybe_imports_map: Option<Vec<(ModuleSpecifier, Vec<String>)>>,
-  bundle_options: BundleOptions,
+  options: BundleOptions,
 ) -> Result<BundleEmit> {
   let mut graph = ModuleGraph::default();
   graph
@@ -45,12 +46,13 @@ pub async fn bundle(
     )
     .await;
 
-  bundle_graph(&graph, bundle_options)
+  bundle_graph(&graph, options)
 }
 
 pub async fn transpile(
   root: ModuleSpecifier,
   loader: &mut dyn Loader,
+  options: TranspileOptions,
 ) -> Result<HashMap<String, String>> {
   let analyzer = CapturingModuleAnalyzer::default();
   let mut graph = ModuleGraph::default();
@@ -71,16 +73,18 @@ pub async fn transpile(
 
   for module in graph.modules().filter_map(|m| m.esm()) {
     if let Some(parsed_source) = analyzer.get_parsed_source(&module.specifier) {
-      // TODO: add emit options
-      let emit_options = Default::default();
-      let transpiled_source = parsed_source.transpile(&emit_options)?;
+      let transpiled_source = parsed_source.transpile(&options.emit_options)?;
 
       map.insert(module.specifier.to_string(), transpiled_source.text);
-      if let Some(source_map) = &transpiled_source.source_map {
-        map.insert(
-          format!("{}.map", module.specifier.as_str()),
-          source_map.to_string(),
-        );
+      // TODO: Understand why parsed_source.transpile returns a source map
+      // even when options.emit_options.source_map is false.
+      if options.emit_options.source_map {
+        if let Some(source_map) = &transpiled_source.source_map {
+          map.insert(
+            format!("{}.map", module.specifier.as_str()),
+            source_map.to_string(),
+          );
+        }
       }
     }
   }

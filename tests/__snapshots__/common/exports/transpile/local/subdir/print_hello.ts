@@ -1,4 +1,3 @@
 export function printHello() {
     console.log("Hello");
 }
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZpbGU6Ly8vc3ViZGlyL3ByaW50X2hlbGxvLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCBmdW5jdGlvbiBwcmludEhlbGxvKCkge1xuICBjb25zb2xlLmxvZyhcIkhlbGxvXCIpO1xufVxuIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLE9BQU8sU0FBUyxhQUFhO0lBQzNCLFFBQVEsR0FBRyxDQUFDO0FBQ2QsQ0FBQyJ9
