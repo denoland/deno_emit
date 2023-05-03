@@ -246,9 +246,11 @@ Deno.test({
         const sourceMapUrl = `${fileUrl}.map`;
 
         const result = await transpile(filePath, { compilerOptions });
+        const code = result.get(fileUrl);
+        assertExists(code);
         return {
-          code: result[fileUrl],
-          map: result[sourceMapUrl],
+          code,
+          map: result.get(sourceMapUrl),
         };
       });
     });
