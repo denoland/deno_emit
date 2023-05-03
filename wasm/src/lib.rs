@@ -133,15 +133,14 @@ pub async fn bundle(
   let maybe_imports_map: Option<HashMap<String, Vec<String>>> = maybe_imports
     .into_serde()
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
-  let maybe_compiler_options: Option<CompilerOptions> = maybe_compiler_options
-    .into_serde()
-    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  let compiler_options: CompilerOptions = maybe_compiler_options
+    .into_serde::<Option<CompilerOptions>>()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
+    .unwrap_or_default();
   let root = ModuleSpecifier::parse(&root)
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
   let mut loader = JsLoader::new(load);
-  let emit_options: EmitOptions = maybe_compiler_options
-    .map(|co| co.into())
-    .unwrap_or_default();
+  let emit_options: EmitOptions = compiler_options.into();
   let bundle_type = match maybe_bundle_type.as_deref() {
     Some("module") | None => BundleType::Module,
     Some("classic") => BundleType::Classic,
