@@ -1,7 +1,7 @@
 // @generated file from wasmbuild -- do not edit
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
-// source-hash: 9f784ee908ad902827ec999bc9a244231ee51448
+// source-hash: d0b4344d47107ffa52e5d7b9387fc0dbd9cc2841
 let wasm;
 
 const heap = new Array(32).fill(undefined);
@@ -12,26 +12,7 @@ function getObject(idx) {
   return heap[idx];
 }
 
-let heap_next = heap.length;
-
-function dropObject(idx) {
-  if (idx < 36) return;
-  heap[idx] = heap_next;
-  heap_next = idx;
-}
-
-function takeObject(idx) {
-  const ret = getObject(idx);
-  dropObject(idx);
-  return ret;
-}
-
-const cachedTextDecoder = new TextDecoder("utf-8", {
-  ignoreBOM: true,
-  fatal: true,
-});
-
-cachedTextDecoder.decode();
+let WASM_VECTOR_LEN = 0;
 
 let cachedUint8Memory0;
 function getUint8Memory0() {
@@ -40,21 +21,6 @@ function getUint8Memory0() {
   }
   return cachedUint8Memory0;
 }
-
-function getStringFromWasm0(ptr, len) {
-  return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
-}
-
-function addHeapObject(obj) {
-  if (heap_next === heap.length) heap.push(heap.length + 1);
-  const idx = heap_next;
-  heap_next = heap[idx];
-
-  heap[idx] = obj;
-  return idx;
-}
-
-let WASM_VECTOR_LEN = 0;
 
 const cachedTextEncoder = new TextEncoder("utf-8");
 
@@ -105,6 +71,40 @@ function getInt32Memory0() {
     cachedInt32Memory0 = new Int32Array(wasm.memory.buffer);
   }
   return cachedInt32Memory0;
+}
+
+let heap_next = heap.length;
+
+function dropObject(idx) {
+  if (idx < 36) return;
+  heap[idx] = heap_next;
+  heap_next = idx;
+}
+
+function takeObject(idx) {
+  const ret = getObject(idx);
+  dropObject(idx);
+  return ret;
+}
+
+const cachedTextDecoder = new TextDecoder("utf-8", {
+  ignoreBOM: true,
+  fatal: true,
+});
+
+cachedTextDecoder.decode();
+
+function getStringFromWasm0(ptr, len) {
+  return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
+}
+
+function addHeapObject(obj) {
+  if (heap_next === heap.length) heap.push(heap.length + 1);
+  const idx = heap_next;
+  heap_next = heap[idx];
+
+  heap[idx] = obj;
+  return idx;
 }
 
 function debugString(val) {
@@ -216,7 +216,7 @@ function isLikeNone(x) {
  * @param {string} root
  * @param {Function} load
  * @param {string | undefined} maybe_bundle_type
- * @param {any} maybe_imports
+ * @param {any} maybe_import_map
  * @param {any} maybe_compiler_options
  * @returns {Promise<any>}
  */
@@ -224,7 +224,7 @@ export function bundle(
   root,
   load,
   maybe_bundle_type,
-  maybe_imports,
+  maybe_import_map,
   maybe_compiler_options,
 ) {
   const ptr0 = passStringToWasm0(
@@ -247,7 +247,7 @@ export function bundle(
     addHeapObject(load),
     ptr1,
     len1,
-    addHeapObject(maybe_imports),
+    addHeapObject(maybe_import_map),
     addHeapObject(maybe_compiler_options),
   );
   return takeObject(ret);
@@ -256,10 +256,16 @@ export function bundle(
 /**
  * @param {string} root
  * @param {Function} load
- * @param {any} _options
+ * @param {any} maybe_import_map
+ * @param {any} maybe_compiler_options
  * @returns {Promise<any>}
  */
-export function transpile(root, load, _options) {
+export function transpile(
+  root,
+  load,
+  maybe_import_map,
+  maybe_compiler_options,
+) {
   const ptr0 = passStringToWasm0(
     root,
     wasm.__wbindgen_malloc,
@@ -270,7 +276,8 @@ export function transpile(root, load, _options) {
     ptr0,
     len0,
     addHeapObject(load),
-    addHeapObject(_options),
+    addHeapObject(maybe_import_map),
+    addHeapObject(maybe_compiler_options),
   );
   return takeObject(ret);
 }
@@ -293,22 +300,6 @@ function __wbg_adapter_25(arg0, arg1, arg2, arg3) {
 
 const imports = {
   __wbindgen_placeholder__: {
-    __wbindgen_object_drop_ref: function (arg0) {
-      takeObject(arg0);
-    },
-    __wbindgen_cb_drop: function (arg0) {
-      const obj = takeObject(arg0).original;
-      if (obj.cnt-- == 1) {
-        obj.a = 0;
-        return true;
-      }
-      const ret = false;
-      return ret;
-    },
-    __wbindgen_string_new: function (arg0, arg1) {
-      const ret = getStringFromWasm0(arg0, arg1);
-      return addHeapObject(ret);
-    },
     __wbindgen_json_serialize: function (arg0, arg1) {
       const obj = getObject(arg1);
       const ret = JSON.stringify(obj === undefined ? null : obj);
@@ -321,8 +312,24 @@ const imports = {
       getInt32Memory0()[arg0 / 4 + 1] = len0;
       getInt32Memory0()[arg0 / 4 + 0] = ptr0;
     },
+    __wbindgen_object_drop_ref: function (arg0) {
+      takeObject(arg0);
+    },
+    __wbindgen_cb_drop: function (arg0) {
+      const obj = takeObject(arg0).original;
+      if (obj.cnt-- == 1) {
+        obj.a = 0;
+        return true;
+      }
+      const ret = false;
+      return ret;
+    },
     __wbindgen_json_parse: function (arg0, arg1) {
       const ret = JSON.parse(getStringFromWasm0(arg0, arg1));
+      return addHeapObject(ret);
+    },
+    __wbindgen_string_new: function (arg0, arg1) {
+      const ret = getStringFromWasm0(arg0, arg1);
       return addHeapObject(ret);
     },
     __wbg_new_651776e932b7e9c7: function (arg0, arg1) {
@@ -389,8 +396,8 @@ const imports = {
     __wbindgen_throw: function (arg0, arg1) {
       throw new Error(getStringFromWasm0(arg0, arg1));
     },
-    __wbindgen_closure_wrapper423: function (arg0, arg1, arg2) {
-      const ret = makeMutClosure(arg0, arg1, 138, __wbg_adapter_16);
+    __wbindgen_closure_wrapper470: function (arg0, arg1, arg2) {
+      const ret = makeMutClosure(arg0, arg1, 182, __wbg_adapter_16);
       return addHeapObject(ret);
     },
   },

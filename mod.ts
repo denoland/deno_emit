@@ -39,7 +39,11 @@ import {
   createCache,
   type FetchCacher,
 } from "https://deno.land/x/deno_cache@0.4.1/mod.ts";
-import { resolve, toFileUrl } from "https://deno.land/std@0.140.0/path/mod.ts";
+import {
+  isAbsolute,
+  resolve,
+  toFileUrl,
+} from "https://deno.land/std@0.140.0/path/mod.ts";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
@@ -47,6 +51,17 @@ export interface BundleEmit {
   code: string;
   /** An optional source map. */
   map?: string;
+}
+
+/** An [import-map](https://deno.land/manual/linking_to_external_code/import_maps#import-maps) */
+export interface ImportMap {
+  /** Base URL to resolve import map specifiers. It Is always treated as a
+   * directory. Defaults to the file URL of `Deno.cwd()`. */
+  baseUrl?: URL | string;
+  /** Specifiers of the import map. */
+  imports?: Record<string, string>;
+  /** Overrides of the specifiers for the provided scopes. */
+  scopes?: Record<string, Record<string, string>>;
 }
 
 export interface BundleOptions {
@@ -58,7 +73,10 @@ export interface BundleOptions {
   cacheSetting?: CacheSetting;
   /** Compiler options which can be set when bundling. */
   compilerOptions?: CompilerOptions;
-  imports?: Record<string, string[]>;
+  /** An [import-map](https://deno.land/manual/linking_to_external_code/import_maps#import-maps)
+   * which will be applied to the imports, or the URL of an import map, or the
+   * path to an import map */
+  importMap?: ImportMap | URL | string;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
@@ -76,8 +94,12 @@ export interface TranspileOptions {
   cacheRoot?: string;
   /** The setting to use when loading sources from the Deno cache. */
   cacheSetting?: CacheSetting;
-  //compilerOptions?: CompilerOptions;
-  //imports: Record<string, string[]>;
+  /** Compiler options which can be set when transpiling. */
+  compilerOptions?: CompilerOptions;
+  /** An [import-map](https://deno.land/manual/linking_to_external_code/import_maps#import-maps)
+   * which will be applied to the imports, or the URL of an import map, or the
+   * path to an import map */
+  importMap?: ImportMap | URL | string;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
@@ -142,29 +164,30 @@ export async function bundle(
   options: BundleOptions = {},
 ): Promise<BundleEmit> {
   const {
-    imports,
-    load,
-    cacheSetting,
-    cacheRoot,
     allowRemote,
-    type,
+    cacheRoot,
+    cacheSetting,
     compilerOptions,
+    importMap,
+    load,
+    type,
   } = options;
 
   checkCompilerOptions(compilerOptions);
+
+  root = root instanceof URL ? root : toFileUrl(resolve(root));
 
   let bundleLoad = load;
   if (!bundleLoad) {
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     bundleLoad = cache.load;
   }
-  root = root instanceof URL ? root : toFileUrl(resolve(root));
   const { bundle: jsBundle } = await instantiate();
   const result = await jsBundle(
     root.toString(),
     bundleLoad,
     type,
-    imports,
+    processImportMapInput(importMap),
     compilerOptions,
   );
   return {
@@ -187,14 +210,29 @@ export async function transpile(
   options: TranspileOptions = {},
 ): Promise<Record<string, string>> {
   root = root instanceof URL ? root : toFileUrl(resolve(root));
-  const { cacheSetting, cacheRoot, allowRemote, load } = options;
+  const {
+    allowRemote,
+    cacheSetting,
+    cacheRoot,
+    compilerOptions,
+    importMap,
+    load,
+  } = options;
+
+  checkCompilerOptions(compilerOptions);
+
   let transpileLoad = load;
   if (!transpileLoad) {
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     transpileLoad = cache.load;
   }
-  const { transpile } = await instantiate();
-  return transpile(root.toString(), transpileLoad, undefined);
+  const { transpile: jsTranspile } = await instantiate();
+  return jsTranspile(
+    root.toString(),
+    transpileLoad,
+    processImportMapInput(importMap),
+    compilerOptions,
+  );
 }
 
 function checkCompilerOptions(
@@ -217,3 +255,83 @@ function checkCompilerOptions(
     );
   }
 }
+
+/**
+ * Resolves a location to its canonical URL object.
+ * @description
+ * The JS API is pretty liberal in what it accepts as a file location.
+ * It can be a URL or a path. The URL can be a URL object or a string, and can
+ * locate a local file or a remote. The path can be relative or absolute, and
+ * can be represented as a POSIX path or a Win32 path, depending on the system.
+ * The Rust API, on the other hand, always expects well-formed URLs, and nothing
+ * else.
+ * @param location a URL object, a URL string, an absolute file path or a relative file path
+ * @returns a URL object that matches the location
+ */
+function locationToUrl(location: URL | string): URL {
+  if (location instanceof URL) {
+    // We don't return it directly to ensure that the caller can then safely
+    // mutate without affecting the original.
+    return new URL(location);
+  }
+  // We attempt to build a URL from the location; if it succeeds, it's great!
+  // If it does not, we assume that it was probably a file path instead.
+  try {
+    // Absolute file paths on Windows can be successfully parsed as URLs, so we
+    // exclude that case first.
+    if (!isAbsolute(location)) {
+      return new URL(location);
+    }
+  } catch (error) {
+    // Rethrowing errors that have nothing to do with failing to parse the URL.
+    if (
+      !(error instanceof TypeError &&
+        error.message.startsWith("Invalid URL"))
+    ) {
+      throw error;
+    }
+  }
+  return toFileUrl(resolve(location));
+}
+
+/**
+ * Transforms the import map input to the format that The Rust lib expects ,
+ * i.e. all locations are resolved to file URLs and the import map content is
+ * serialized to JSON.
+ * @param importMap The import map as provided to the JS API.
+ * @returns The import map that must be provided to the Rust API.
+ */
+function processImportMapInput(
+  importMap: ImportMapJsLibInput,
+): ImportMapRustLibInput {
+  if (typeof importMap === "string" || importMap instanceof URL) {
+    return locationToUrl(importMap).toString();
+  }
+  if (typeof importMap === "object") {
+    const { baseUrl, imports, scopes } = importMap;
+    const url = locationToUrl(baseUrl ?? Deno.cwd());
+    // Rust lib expects url to be the file URL to the import map file, but the
+    // JS API expects it to be the file URL to the root directory, so we need to
+    // append an extra slash.
+    if (!url.pathname.endsWith("/")) {
+      url.pathname += "/";
+    }
+    return {
+      baseUrl: url.toString(),
+      jsonString: JSON.stringify({ imports, scopes }),
+    };
+  }
+  return undefined;
+}
+
+type ImportMapJsLibInput =
+  | BundleOptions["importMap"]
+  | TranspileOptions["importMap"];
+
+type ImportMapRustLibInput =
+  | {
+    baseUrl: string;
+    jsonString: string;
+  }
+  | string
+  | undefined;
