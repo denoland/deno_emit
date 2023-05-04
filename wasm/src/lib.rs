@@ -73,16 +73,17 @@ impl From<CompilerOptions> for EmitOptions {
 }
 
 #[derive(serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportMapInput {
-  pub url: String,
-  pub value: String,
+  pub base_url: String,
+  pub json_string: String,
 }
 
 impl TryFrom<ImportMapInput> for ImportMap {
   type Error = anyhow::Error;
 
   fn try_from(input: ImportMapInput) -> anyhow::Result<Self> {
-    deno_emit::parse_import_map(&input.url, &input.value)
+    deno_emit::parse_import_map(&input.base_url, &input.json_string)
   }
 }
 

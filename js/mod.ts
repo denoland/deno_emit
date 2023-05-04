@@ -39,7 +39,11 @@ import {
   createCache,
   type FetchCacher,
 } from "https://deno.land/x/deno_cache@0.4.1/mod.ts";
-import { resolve, toFileUrl } from "https://deno.land/std@0.140.0/path/mod.ts";
+import {
+  isAbsolute,
+  resolve,
+  toFileUrl,
+} from "https://deno.land/std@0.140.0/path/mod.ts";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
@@ -177,7 +181,7 @@ export async function bundle(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     bundleLoad = cache.load;
   }
-  const importMap = await buildImportMap(options);
+  const importMap = await buildImportMap(options, bundleLoad);
   const { bundle: jsBundle } = await instantiate();
   const result = await jsBundle(
     root.toString(),
@@ -216,7 +220,7 @@ export async function transpile(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     transpileLoad = cache.load;
   }
-  const importMap = await buildImportMap(options);
+  const importMap = await buildImportMap(options, transpileLoad);
   const { transpile: jsTranspile } = await instantiate();
   return jsTranspile(
     root.toString(),
@@ -248,43 +252,84 @@ function checkCompilerOptions(
 }
 
 interface SerializedImportMap {
-  url: string;
-  value: string;
+  baseUrl: string;
+  jsonString: string;
 }
 
-async function fetchImportMap(
-  urlOrString: URL | string | undefined,
+/**
+ * Resolves a location to its canonical URL object.
+ * @description
+ * The JS API is pretty liberal in what it accepts as a file location.
+ * It can be a URL or a path. The URL can be a URL object or a string, and can
+ * locate a local file or a remote. The path can be relative or absolute, and
+ * can be represented as a POSIX path or a Win32 path, depending on the system.
+ * The Rust API, on the other hand, always expects well-formed URLs, and nothing
+ * else.
+ * @param location a URL object, a URL string, an absolute file path or a relative file path
+ * @returns a URL object that matches the location
+ */
+function locationToUrl(location: URL | string): URL {
+  if (location instanceof URL) {
+    // We don't return it directly to ensure that the caller can then safely
+    // mutate without affecting the original.
+    return new URL(location);
+  }
+  // We attempt to build a URL from the location; if it succeeds, it's great!
+  // If it does not, we assume that it was probably a file path instead.
+  try {
+    // Absolute file paths on Windows can be successfully parsed as URLs, so we
+    // exclude that case first.
+    if (!isAbsolute(location)) {
+      return new URL(location);
+    }
+  } catch (error) {
+    // Rethrowing errors that have nothing to do with failing to parse the URL.
+    if (
+      !(error instanceof TypeError &&
+        error.message.startsWith("Invalid URL"))
+    ) {
+      throw error;
+    }
+  }
+  return toFileUrl(resolve(location));
+}
+
+async function loadImportMap(
+  location: URL | string | undefined,
+  load: FetchCacher["load"],
 ): Promise<SerializedImportMap | undefined> {
-  if (!urlOrString) return undefined;
-  const url = urlOrString instanceof URL
-    ? urlOrString
-    : toFileUrl(resolve(urlOrString));
-  const fetchImportMapResponse = await fetch(url);
-  const body = await fetchImportMapResponse.json();
-  return {
-    url: url.toString(),
-    value: JSON.stringify({
-      imports: body.imports,
-      scopes: body.scopes,
-    }),
-  };
+  if (!location) return undefined;
+
+  const response = await load(locationToUrl(location).toString());
+  if (!response) return undefined;
+  switch (response.kind) {
+    case "module":
+      response.content;
+      return {
+        baseUrl: response.specifier,
+        jsonString: response.content,
+      };
+    case "external":
+    case "builtIn":
+    default:
+      throw new Error("Unexpected response kind");
+  }
 }
 
 async function buildImportMap(
   options: {
     importMap?: ImportMap | URL | string;
   },
+  load: FetchCacher["load"],
 ): Promise<SerializedImportMap | undefined> {
   const { importMap } = options;
   if (typeof importMap === "string" || importMap instanceof URL) {
-    const fetchedImportMap = await fetchImportMap(importMap);
+    const fetchedImportMap = await loadImportMap(importMap, load);
     return fetchedImportMap;
   }
   if (typeof importMap === "object") {
     const { baseUrl, imports, scopes } = importMap;
-    const url = baseUrl instanceof URL
-      ? new URL(baseUrl.toString())
-      : toFileUrl(baseUrl ? resolve(baseUrl) : Deno.cwd());
+    const url = locationToUrl(baseUrl ?? Deno.cwd());
     // Rust lib expects url to be the file URL to the import map file, but the
     // JS API expects it to be the file URL to the root directory, so we need to
     // append an extra slash.
@@ -292,8 +337,8 @@ async function buildImportMap(
       url.pathname += "/";
     }
     return {
-      url: url.toString(),
-      value: JSON.stringify({ imports, scopes }),
+      baseUrl: url.toString(),
+      jsonString: JSON.stringify({ imports, scopes }),
     };
   }
   return undefined;

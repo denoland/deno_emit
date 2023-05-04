@@ -1,4 +1,4 @@
-import { toFileUrl } from "https://deno.land/std@0.182.0/path/mod.ts";
+import { join, toFileUrl } from "https://deno.land/std@0.182.0/path/mod.ts";
 import { assertEquals } from "https://deno.land/std@0.182.0/testing/asserts.ts";
 import { resolveFixture, runModule, testTranspileAndBundle } from "./utils.ts";
 
@@ -48,7 +48,7 @@ Deno.test({
   fn: testTranspileAndBundle(
     resolveFixture("import_map/main.ts"),
     {
-      importMap: "./testdata/import_map/import_map.json",
+      importMap: join("testdata", "import_map", "import_map.json"),
     },
     async ({ outputFileUrl, denoConfigPath, functionCalled }) => {
       if (functionCalled === "bundle") {
@@ -90,8 +90,6 @@ Deno.test({
       }
     },
   ),
-  // FIXME: Doesn't pass yet.
-  ignore: true,
 });
 
 Deno.test({

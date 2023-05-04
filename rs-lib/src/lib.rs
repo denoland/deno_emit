@@ -93,9 +93,13 @@ pub async fn transpile(
   Ok(map)
 }
 
-pub fn parse_import_map(base_url: &str, json_str: &str) -> Result<ImportMap> {
+pub fn parse_import_map(
+  base_url: &str,
+  json_string: &str,
+) -> Result<ImportMap> {
   let base_url = Url::parse(base_url)?;
-  let import_map = import_map::parse_from_json(&base_url, json_str)?.import_map;
+  let import_map =
+    import_map::parse_from_json(&base_url, json_string)?.import_map;
   Ok(import_map)
 }
 
