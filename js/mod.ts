@@ -168,6 +168,7 @@ export async function bundle(
     cacheRoot,
     cacheSetting,
     compilerOptions,
+    importMap,
     load,
     type,
   } = options;
@@ -181,13 +182,12 @@ export async function bundle(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     bundleLoad = cache.load;
   }
-  const importMap = await buildImportMap(options, bundleLoad);
   const { bundle: jsBundle } = await instantiate();
   const result = await jsBundle(
     root.toString(),
     bundleLoad,
     type,
-    importMap,
+    processImportMapInput(importMap),
     compilerOptions,
   );
   return {
@@ -210,8 +210,14 @@ export async function transpile(
   options: TranspileOptions = {},
 ): Promise<Record<string, string>> {
   root = root instanceof URL ? root : toFileUrl(resolve(root));
-  const { cacheSetting, cacheRoot, allowRemote, load, compilerOptions } =
-    options;
+  const {
+    allowRemote,
+    cacheSetting,
+    cacheRoot,
+    compilerOptions,
+    importMap,
+    load,
+  } = options;
 
   checkCompilerOptions(compilerOptions);
 
@@ -220,12 +226,11 @@ export async function transpile(
     const cache = createCache({ root: cacheRoot, cacheSetting, allowRemote });
     transpileLoad = cache.load;
   }
-  const importMap = await buildImportMap(options, transpileLoad);
   const { transpile: jsTranspile } = await instantiate();
   return jsTranspile(
     root.toString(),
     transpileLoad,
-    importMap,
+    processImportMapInput(importMap),
     compilerOptions,
   );
 }
@@ -249,11 +254,6 @@ function checkCompilerOptions(
       "Option 'inlineSources' can only be used when either option 'inlineSourceMap' or option 'sourceMap' is provided",
     );
   }
-}
-
-interface SerializedImportMap {
-  baseUrl: string;
-  jsonString: string;
 }
 
 /**
@@ -294,38 +294,18 @@ function locationToUrl(location: URL | string): URL {
   return toFileUrl(resolve(location));
 }
 
-async function loadImportMap(
-  location: URL | string | undefined,
-  load: FetchCacher["load"],
-): Promise<SerializedImportMap | undefined> {
-  if (!location) return undefined;
-
-  const response = await load(locationToUrl(location).toString());
-  if (!response) return undefined;
-  switch (response.kind) {
-    case "module":
-      response.content;
-      return {
-        baseUrl: response.specifier,
-        jsonString: response.content,
-      };
-    case "external":
-    case "builtIn":
-    default:
-      throw new Error("Unexpected response kind");
-  }
-}
-
-async function buildImportMap(
-  options: {
-    importMap?: ImportMap | URL | string;
-  },
-  load: FetchCacher["load"],
-): Promise<SerializedImportMap | undefined> {
-  const { importMap } = options;
+/**
+ * Transforms the import map input to the format that The Rust lib expects ,
+ * i.e. all locations are resolved to file URLs and the import map content is
+ * serialized to JSON.
+ * @param importMap The import map as provided to the JS API.
+ * @returns The import map that must be provided to the Rust API.
+ */
+function processImportMapInput(
+  importMap: ImportMapJsLibInput,
+): ImportMapRustLibInput {
   if (typeof importMap === "string" || importMap instanceof URL) {
-    const fetchedImportMap = await loadImportMap(importMap, load);
-    return fetchedImportMap;
+    return locationToUrl(importMap).toString();
   }
   if (typeof importMap === "object") {
     const { baseUrl, imports, scopes } = importMap;
@@ -343,3 +323,15 @@ async function buildImportMap(
   }
   return undefined;
 }
+
+type ImportMapJsLibInput =
+  | BundleOptions["importMap"]
+  | TranspileOptions["importMap"];
+
+type ImportMapRustLibInput =
+  | {
+    baseUrl: string;
+    jsonString: string;
+  }
+  | string
+  | undefined;

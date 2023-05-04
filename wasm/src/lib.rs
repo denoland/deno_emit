@@ -4,12 +4,13 @@ use anyhow::anyhow;
 use deno_emit::BundleOptions;
 use deno_emit::BundleType;
 use deno_emit::EmitOptions;
-use deno_emit::ImportMap;
+use deno_emit::ImportMapInput;
 use deno_emit::ImportsNotUsedAsValues;
 use deno_emit::LoadFuture;
 use deno_emit::Loader;
 use deno_emit::ModuleSpecifier;
 use deno_emit::TranspileOptions;
+use url::Url;
 use wasm_bindgen::prelude::*;
 
 /// This is a deserializable structure of the `"compilerOptions"` section of a
@@ -73,17 +74,36 @@ impl From<CompilerOptions> for EmitOptions {
 }
 
 #[derive(serde::Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ImportMapInput {
-  pub base_url: String,
-  pub json_string: String,
+#[serde(untagged)]
+enum ImportMapJsInput {
+  ModuleSpecifier(String),
+  #[serde(rename_all = "camelCase")]
+  Json {
+    base_url: String,
+    json_string: String,
+  },
 }
 
-impl TryFrom<ImportMapInput> for ImportMap {
+impl TryFrom<ImportMapJsInput> for ImportMapInput {
   type Error = anyhow::Error;
 
-  fn try_from(input: ImportMapInput) -> anyhow::Result<Self> {
-    deno_emit::parse_import_map(&input.base_url, &input.json_string)
+  fn try_from(js_input: ImportMapJsInput) -> anyhow::Result<Self> {
+    match js_input {
+      ImportMapJsInput::ModuleSpecifier(specifier) => {
+        let specifier = ModuleSpecifier::parse(&specifier)?;
+        Ok(ImportMapInput::ModuleSpecifier(specifier))
+      }
+      ImportMapJsInput::Json {
+        base_url,
+        json_string,
+      } => {
+        let base_url = Url::parse(&base_url)?;
+        Ok(ImportMapInput::Json {
+          base_url,
+          json_string,
+        })
+      }
+    }
   }
 }
 
@@ -164,10 +184,10 @@ pub async fn bundle(
     }
   };
   let maybe_import_map = maybe_import_map
-    .into_serde::<Option<ImportMapInput>>()
+    .into_serde::<Option<ImportMapJsInput>>()
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
-    .map(|import_map_input| {
-      let result: anyhow::Result<ImportMap> = import_map_input.try_into();
+    .map(|js_input| {
+      let result: anyhow::Result<ImportMapInput> = js_input.try_into();
       result
     })
     .transpose()
@@ -210,10 +230,10 @@ pub async fn transpile(
   let emit_options: EmitOptions = compiler_options.into();
 
   let maybe_import_map = maybe_import_map
-    .into_serde::<Option<ImportMapInput>>()
+    .into_serde::<Option<ImportMapJsInput>>()
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
-    .map(|import_map_input| {
-      let result: anyhow::Result<ImportMap> = import_map_input.try_into();
+    .map(|js_input| {
+      let result: anyhow::Result<ImportMapInput> = js_input.try_into();
       result
     })
     .transpose()

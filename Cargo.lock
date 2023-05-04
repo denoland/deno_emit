@@ -250,6 +250,7 @@ dependencies = [
  "deno_emit",
  "js-sys",
  "serde",
+ "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
