@@ -151,26 +151,6 @@ Deno.test({
 });
 
 Deno.test({
-  name: "import map",
-  fn: testTranspileAndBundle(
-    resolveFixture("import_map/main.ts"),
-    {
-      // importMap: resolveFixture("import_map/import_map.json"),
-    },
-    async ({ outputFileUrl, denoConfigPath }) => {
-      const output = await runCode(
-        `import { printHello3 } from "${outputFileUrl}";\n printHello3();`,
-        denoConfigPath,
-      );
-      assertEquals(output, "Hello\n");
-    },
-  ),
-  // TODO: Support import maps.
-  // See https://github.com/denoland/deno_emit/issues/67.
-  ignore: true,
-});
-
-Deno.test({
   name: "jsx import from ts",
   fn: testTranspileAndBundle(resolveFixture("jsx_import_from_ts.ts")),
 });

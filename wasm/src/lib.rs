@@ -4,12 +4,13 @@ use anyhow::anyhow;
 use deno_emit::BundleOptions;
 use deno_emit::BundleType;
 use deno_emit::EmitOptions;
+use deno_emit::ImportMapInput;
 use deno_emit::ImportsNotUsedAsValues;
 use deno_emit::LoadFuture;
 use deno_emit::Loader;
 use deno_emit::ModuleSpecifier;
 use deno_emit::TranspileOptions;
-use std::collections::HashMap;
+use url::Url;
 use wasm_bindgen::prelude::*;
 
 /// This is a deserializable structure of the `"compilerOptions"` section of a
@@ -72,6 +73,40 @@ impl From<CompilerOptions> for EmitOptions {
   }
 }
 
+#[derive(serde::Deserialize, Debug)]
+#[serde(untagged)]
+enum ImportMapJsInput {
+  ModuleSpecifier(String),
+  #[serde(rename_all = "camelCase")]
+  Json {
+    base_url: String,
+    json_string: String,
+  },
+}
+
+impl TryFrom<ImportMapJsInput> for ImportMapInput {
+  type Error = anyhow::Error;
+
+  fn try_from(js_input: ImportMapJsInput) -> anyhow::Result<Self> {
+    match js_input {
+      ImportMapJsInput::ModuleSpecifier(specifier) => {
+        let specifier = ModuleSpecifier::parse(&specifier)?;
+        Ok(ImportMapInput::ModuleSpecifier(specifier))
+      }
+      ImportMapJsInput::Json {
+        base_url,
+        json_string,
+      } => {
+        let base_url = Url::parse(&base_url)?;
+        Ok(ImportMapInput::Json {
+          base_url,
+          json_string,
+        })
+      }
+    }
+  }
+}
+
 #[derive(serde::Serialize, Debug)]
 pub struct SerializableBundleEmit {
   pub code: String,
@@ -127,13 +162,10 @@ pub async fn bundle(
   root: String,
   load: js_sys::Function,
   maybe_bundle_type: Option<String>,
-  maybe_imports: JsValue,
+  maybe_import_map: JsValue,
   maybe_compiler_options: JsValue,
 ) -> Result<JsValue, JsValue> {
   // todo(dsherret): eliminate all the duplicate `.map_err`s
-  let maybe_imports_map: Option<HashMap<String, Vec<String>>> = maybe_imports
-    .into_serde()
-    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
   let compiler_options: CompilerOptions = maybe_compiler_options
     .into_serde::<Option<CompilerOptions>>()
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
@@ -151,23 +183,20 @@ pub async fn bundle(
       ))))
     }
   };
-
-  let maybe_imports = if let Some(imports_map) = maybe_imports_map {
-    let mut imports = Vec::new();
-    for (referrer_str, specifier_vec) in imports_map.into_iter() {
-      let referrer = ModuleSpecifier::parse(&referrer_str)
-        .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
-      imports.push((referrer, specifier_vec));
-    }
-    Some(imports)
-  } else {
-    None
-  };
+  let maybe_import_map = maybe_import_map
+    .into_serde::<Option<ImportMapJsInput>>()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
+    .map(|js_input| {
+      let result: anyhow::Result<ImportMapInput> = js_input.try_into();
+      result
+    })
+    .transpose()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
 
   let result = deno_emit::bundle(
     root,
     &mut loader,
-    maybe_imports,
+    maybe_import_map,
     BundleOptions {
       bundle_type,
       emit_options,
@@ -188,6 +217,7 @@ pub async fn bundle(
 pub async fn transpile(
   root: String,
   load: js_sys::Function,
+  maybe_import_map: JsValue,
   maybe_compiler_options: JsValue,
 ) -> Result<JsValue, JsValue> {
   let compiler_options: CompilerOptions = maybe_compiler_options
@@ -199,10 +229,24 @@ pub async fn transpile(
   let mut loader = JsLoader::new(load);
   let emit_options: EmitOptions = compiler_options.into();
 
-  let map =
-    deno_emit::transpile(root, &mut loader, TranspileOptions { emit_options })
-      .await
-      .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  let maybe_import_map = maybe_import_map
+    .into_serde::<Option<ImportMapJsInput>>()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
+    .map(|js_input| {
+      let result: anyhow::Result<ImportMapInput> = js_input.try_into();
+      result
+    })
+    .transpose()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+
+  let map = deno_emit::transpile(
+    root,
+    &mut loader,
+    maybe_import_map,
+    TranspileOptions { emit_options },
+  )
+  .await
+  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
 
   JsValue::from_serde(&map)
     .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))
