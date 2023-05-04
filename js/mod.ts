@@ -49,30 +49,36 @@ export interface BundleEmit {
   map?: string;
 }
 
+/** An [import-map](https://deno.land/manual/linking_to_external_code/import_maps#import-maps) */
+export interface ImportMap {
+  /** Base URL to resolve import map specifiers. It Is always treated as a
+   * directory. Defaults to the file URL of `Deno.cwd()`. */
+  baseUrl?: URL | string;
+  /** Specifiers of the import map. */
+  imports?: Record<string, string>;
+  /** Overrides of the specifiers for the provided scopes. */
+  scopes?: Record<string, Record<string, string>>;
+}
+
 export interface BundleOptions {
   /** Allow remote modules to be loaded or read from the cache. */
   allowRemote?: boolean;
   /** The cache root to use, overriding the default inferred `DENO_DIR`. */
   cacheRoot?: string;
-  /** Base URL to resolve import map specifiers. Defaults to `Deno.cwd()`.
-   * Ignored if `imports` is not set. */
-  baseUrl?: URL | string;
   /** The setting to use when loading sources from the Deno cache. */
   cacheSetting?: CacheSetting;
   /** Compiler options which can be set when bundling. */
   compilerOptions?: CompilerOptions;
-  /** Location of an import map */
-  importMap?: URL | string;
-  /** Specifiers of an import map. Takes precedence over `importMap`. */
-  imports?: Record<string, string>;
+  /** An [import-map](https://deno.land/manual/linking_to_external_code/import_maps#import-maps)
+   * which will be applied to the imports, or the URL of an import map, or the
+   * path to an import map */
+  importMap?: ImportMap | URL | string;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
   load?: FetchCacher["load"];
   /** Should the emitted bundle be an ES module or an IIFE script. The default
    * is `"module"` to output a ESM module. */
-  /** Import map scopes. Takes precedence over `importMap`. */
-  scopes?: Record<string, Record<string, string>>;
   type?: "module" | "classic";
 }
 
@@ -80,25 +86,20 @@ export interface BundleOptions {
 export interface TranspileOptions {
   /** Allow remote modules to be loaded or read from the cache. */
   allowRemote?: boolean;
-  /** Base URL to resolve import map specifiers. Defaults to `Deno.cwd()`.
-   * Ignored if `imports` is not set. */
-  baseUrl?: URL | string;
   /** The cache root to use, overriding the default inferred `DENO_DIR`. */
   cacheRoot?: string;
   /** The setting to use when loading sources from the Deno cache. */
   cacheSetting?: CacheSetting;
   /** Compiler options which can be set when transpiling. */
   compilerOptions?: CompilerOptions;
-  /** Location of an import map */
-  importMap?: URL | string;
-  /** Specifiers of an import map. Takes precedence over `importMap`. */
-  imports?: Record<string, string>;
+  /** An [import-map](https://deno.land/manual/linking_to_external_code/import_maps#import-maps)
+   * which will be applied to the imports, or the URL of an import map, or the
+   * path to an import map */
+  importMap?: ImportMap | URL | string;
   /** Override the default loading mechanism with a custom loader. This can
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
   load?: FetchCacher["load"];
-  /** Import map scopes. Takes precedence over `importMap`. */
-  scopes?: Record<string, Record<string, string>>;
   //type?: "module" | "classic";
 }
 
@@ -271,14 +272,16 @@ async function fetchImportMap(
 
 async function buildImportMap(
   options: {
-    baseUrl?: URL | string;
-    imports?: Record<string, string>;
-    scopes?: Record<string, Record<string, string>>;
-    importMap?: URL | string;
+    importMap?: ImportMap | URL | string;
   },
 ): Promise<SerializedImportMap | undefined> {
-  const { baseUrl, imports, scopes, importMap } = options;
-  if (imports != null || scopes != null) {
+  const { importMap } = options;
+  if (typeof importMap === "string" || importMap instanceof URL) {
+    const fetchedImportMap = await fetchImportMap(importMap);
+    return fetchedImportMap;
+  }
+  if (typeof importMap === "object") {
+    const { baseUrl, imports, scopes } = importMap;
     const url = baseUrl instanceof URL
       ? new URL(baseUrl.toString())
       : toFileUrl(baseUrl ? resolve(baseUrl) : Deno.cwd());
@@ -292,10 +295,6 @@ async function buildImportMap(
       url: url.toString(),
       value: JSON.stringify({ imports, scopes }),
     };
-  }
-  if (importMap != null) {
-    const fetchedImportMap = await fetchImportMap(importMap);
-    return fetchedImportMap;
   }
   return undefined;
 }

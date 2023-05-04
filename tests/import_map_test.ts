@@ -7,8 +7,10 @@ Deno.test({
   fn: testTranspileAndBundle(
     resolveFixture("import_map/main.ts"),
     {
-      imports: {
-        "foo": "./testdata/subdir/foo.ts",
+      importMap: {
+        imports: {
+          "foo": "./testdata/subdir/foo.ts",
+        },
       },
     },
     async ({ outputFileUrl, denoConfigPath, functionCalled }) => {
@@ -25,9 +27,11 @@ Deno.test({
   fn: testTranspileAndBundle(
     resolveFixture("import_map/main.ts"),
     {
-      baseUrl: toFileUrl(resolveFixture(".")),
-      imports: {
-        "foo": "./subdir/foo.ts",
+      importMap: {
+        baseUrl: toFileUrl(resolveFixture(".")),
+        imports: {
+          "foo": "./subdir/foo.ts",
+        },
       },
     },
     async ({ outputFileUrl, denoConfigPath, functionCalled }) => {
@@ -74,20 +78,9 @@ Deno.test({
 });
 
 Deno.test({
-  name: "embedded import map takes precedence over file",
+  name: "empty import map",
   fn: testTranspileAndBundle(
-    resolveFixture("import_map/main.ts"),
-    {
-      importMap: resolveFixture("import_map/import_map.json"),
-      imports: {
-        "foo": "./testdata/subdir/foo2.ts",
-      },
-    },
-    async ({ outputFileUrl, denoConfigPath, functionCalled }) => {
-      if (functionCalled === "bundle") {
-        const output = await runModule(outputFileUrl, denoConfigPath);
-        assertEquals(output, "foo2\n");
-      }
-    },
+    resolveFixture("mod1.ts"),
+    { importMap: {} },
   ),
 });
