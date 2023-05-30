@@ -15,6 +15,7 @@ import {
   assert,
   assertArrayIncludes,
   assertEquals,
+  assertExists,
   AssertionError,
 } from "https://deno.land/std@0.182.0/testing/asserts.ts";
 import {
@@ -93,7 +94,7 @@ export function testTranspile(
 
     const normalizedRoot = normalizeIfFileUrl(locationToUrl(root).toString());
 
-    assertArrayIncludes(Object.keys(result), [normalizedRoot]);
+    assertArrayIncludes(Array.from(result.keys()), [normalizedRoot]);
 
     const testDir = resolve(getSnapshotDir(t), ...getTestPath(t));
 
@@ -105,7 +106,7 @@ export function testTranspile(
     // are annoying to handle in the file system, so we hash it.
     const originToHash: Map<string, string> = new Map();
 
-    for (const [urlStr, source] of Object.entries(result)) {
+    for (const [urlStr, source] of result.entries()) {
       const url = new URL(urlStr);
 
       let filePath: string;
@@ -178,11 +179,13 @@ export function testTranspile(
         }),
       );
       const denoConfigPath = resolve(testDir, "deno.json");
+      const outputCode = result.get(normalizedRoot);
+      assertExists(outputCode);
       const output: TranspileTestOutput = {
         functionCalled: "transpile",
         rootUrl: normalizedRoot,
         outputFileUrl: toFileUrl(modulesPaths[normalizedRoot]).toString(),
-        outputCode: result[normalizedRoot],
+        outputCode,
         result,
         modulesPaths,
         denoConfigPath,
@@ -447,8 +450,8 @@ function normalizeIfFileUrl(urlString: string): string {
  * This function fixes those issues.
  */
 function fixTranspileResult(result: TranspileResult): TranspileResult {
-  return Object.fromEntries(
-    Object.entries(result).map((
+  return new Map(
+    Array.from(result.entries()).map((
       [url, source],
     ): [string, string] => {
       url = normalizeIfFileUrl(url);

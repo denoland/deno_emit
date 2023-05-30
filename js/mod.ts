@@ -195,14 +195,14 @@ export async function bundle(
  *
  * @param root The root module specifier to use for the bundle.
  * @param options Options to use when emitting.
- * @returns A promise which resolves with an object map of the emitted files,
+ * @returns A promise which resolves with a map of the emitted files,
  *          where the key is the emitted files name and the value is the
  *          source for the file.
  */
 export async function transpile(
   root: string | URL,
   options: TranspileOptions = {},
-): Promise<Record<string, string>> {
+): Promise<Map<string, string>> {
   const {
     allowRemote,
     cacheSetting,
