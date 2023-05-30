@@ -38,8 +38,6 @@ Deno.test({
   fn: testTranspileAndBundle(
     toFileUrl(resolveFixture("hello_world.ts")).toString(),
   ),
-  // TODO: Support URLs without wrapping in an object. See https://github.com/denoland/deno_emit/issues/62.
-  ignore: true,
 });
 
 Deno.test({
@@ -47,8 +45,6 @@ Deno.test({
   fn: testTranspileAndBundle(
     "https://deno.land/std@0.140.0/examples/chat/server.ts",
   ),
-  // TODO: Support URLs without wrapping in an object. See https://github.com/denoland/deno_emit/issues/62.
-  ignore: true,
 });
 
 Deno.test({
