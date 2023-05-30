@@ -22,14 +22,15 @@ import {
   buildMessage,
   diffstr,
 } from "https://deno.land/std@0.182.0/testing/_diff.ts";
+import * as base64Url from "https://deno.land/std@0.182.0/encoding/base64url.ts";
+import * as base64 from "https://deno.land/std@0.182.0/encoding/base64.ts";
 import {
   bundle,
   type BundleOptions,
   transpile,
   type TranspileOptions,
 } from "../js/mod.ts";
-import * as base64Url from "https://deno.land/std@0.182.0/encoding/base64url.ts";
-import * as base64 from "https://deno.land/std@0.182.0/encoding/base64.ts";
+import { locationToUrl } from "../js/_utils.ts";
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -91,9 +92,7 @@ export function testTranspile(
   return async function (t: Deno.TestContext): Promise<void> {
     const result = fixTranspileResult(await transpile(root, options));
 
-    const normalizedRoot = normalizeIfFileUrl(
-      (root instanceof URL ? root : toFileUrl(resolve(root))).toString(),
-    );
+    const normalizedRoot = normalizeIfFileUrl(locationToUrl(root).toString());
 
     assertArrayIncludes(Array.from(result.keys()), [normalizedRoot]);
 
