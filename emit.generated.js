@@ -613,8 +613,8 @@ const imports = {
   },
 };
 
-import { Loader } from "https://deno.land/x/wasmbuild@0.12.1/loader.ts";
-import { cacheToLocalDir } from "https://deno.land/x/wasmbuild@0.12.1/cache.ts";
+import { Loader } from "https://deno.land/x/wasmbuild@0.13.0/loader.ts";
+import { cacheToLocalDir } from "https://deno.land/x/wasmbuild@0.13.0/cache.ts";
 
 const loader = new Loader({
   imports,
