@@ -18,7 +18,7 @@ import { transpile } from "https://deno.land/x/emit/mod.ts";
 const url = new URL("./testdata/mod.ts", import.meta.url);
 const result = await transpile(url);
 
-const code = result[url.href];
+const code = result.get(url.href);
 console.log(code.includes("export default function hello()"));
 ```
 
