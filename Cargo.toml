@@ -3,3 +3,13 @@ members = [
   "rs-lib",
   "wasm"
 ]
+
+[profile.release]
+codegen-units = 1
+incremental = true
+lto = true
+opt-level = "z"
+
+[patch.crates-io]
+deno_semver = { path = "../deno_semver" }
+deno_graph = { path = "../deno_graph" }
