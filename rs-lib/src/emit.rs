@@ -339,6 +339,7 @@ mod test {
   use deno_graph::source::Source;
   use deno_graph::BuildOptions;
   use deno_graph::CapturingModuleAnalyzer;
+  use deno_graph::GraphKind;
   use deno_graph::ModuleGraph;
   use pretty_assertions::assert_eq;
 
@@ -352,7 +353,7 @@ mod test {
     let mut memory_loader = MemoryLoader::new(sources, vec![]);
     let root = ModuleSpecifier::parse(root.as_ref()).unwrap();
     let analyzer = CapturingModuleAnalyzer::default();
-    let mut graph = ModuleGraph::default();
+    let mut graph = ModuleGraph::new(GraphKind::CodeOnly);
     graph
       .build(
         vec![root.clone()],
