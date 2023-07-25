@@ -176,3 +176,17 @@ Deno.test({
   // TODO: Shebangs are not preserved, but they should be.
   ignore: true,
 });
+
+Deno.test({
+  name: "external",
+  fn: testTranspileAndBundle(resolveFixture("external.ts"), {
+    async load(specifier) {
+      if (specifier === toFileUrl(resolveFixture("external.ts")).toString()) {
+        const content = await Deno.readTextFile(resolveFixture("external.ts"));
+        console.log(content);
+        return { kind: "module", specifier, content };
+      }
+      return { kind: "external", specifier };
+    },
+  }),
+});
