@@ -5,6 +5,7 @@ use anyhow::Context;
 use anyhow::Result;
 use deno_ast::get_syntax;
 use deno_ast::swc;
+use deno_ast::swc::atoms::JsWord;
 use deno_ast::swc::common::comments::SingleThreadedComments;
 use deno_ast::swc::common::FileName;
 use deno_ast::swc::common::Mark;
@@ -130,6 +131,7 @@ impl swc::bundler::Resolve for BundleResolver<'_> {
         referrer
       );
     };
+
     if let Some(specifier) =
       self.0.resolve_dependency(specifier, referrer, false)
     {
@@ -167,6 +169,15 @@ pub fn bundle_graph(
     let resolver = BundleResolver(graph);
     let config = swc::bundler::Config {
       module: options.bundle_type.into(),
+      external_modules: graph
+        .modules()
+        .filter_map(|m| match m {
+          Module::External(_) | Module::Node(_) | Module::Npm(_) => {
+            Some(JsWord::from(m.specifier().to_string()))
+          }
+          Module::Esm(_) | Module::Json(_) => None,
+        })
+        .collect(),
       ..Default::default()
     };
     // This hook will rewrite the `import.meta` when bundling to give a consistent
@@ -336,21 +347,8 @@ mod test {
 
   async fn setup<S: AsRef<str> + Copy>(
     root: S,
-    sources: Vec<(S, S)>,
+    sources: Vec<(S, Source<S>)>,
   ) -> (ModuleGraph, CapturingModuleAnalyzer, ModuleSpecifier) {
-    let sources = sources
-      .into_iter()
-      .map(|(s, c)| {
-        (
-          s,
-          Source::Module {
-            specifier: s,
-            maybe_headers: None,
-            content: c,
-          },
-        )
-      })
-      .collect();
     let mut memory_loader = MemoryLoader::new(sources, vec![]);
     let root = ModuleSpecifier::parse(root.as_ref()).unwrap();
     let analyzer = CapturingModuleAnalyzer::default();
@@ -369,14 +367,65 @@ mod test {
   }
 
   #[tokio::test]
+  async fn bundle_external() {
+    let sources = vec![
+      (
+        "file:///a/test01.ts",
+        Source::Module {
+          specifier: "file:///a/test01.ts",
+          maybe_headers: None,
+          content: r#"export { b } from "./test02.ts";"#,
+        },
+      ),
+      (
+        "file:///a/test02.ts",
+        Source::Module {
+          specifier: "file:///a/test02.ts",
+          maybe_headers: None,
+          content: r#"
+import "https://example.com/external.ts";
+export const b = "b";
+"#,
+        },
+      ),
+      (
+        "https://example.com/external.ts",
+        Source::External("https://example.com/external.ts"),
+      ),
+    ];
+    let graph = setup("file:///a/test01.ts", sources).await.0;
+    let output = bundle_graph(
+      &graph,
+      BundleOptions {
+        bundle_type: crate::BundleType::Module,
+        emit_ignore_directives: false,
+        emit_options: Default::default(),
+      },
+    )
+    .unwrap();
+
+    assert_eq!(
+      r#"import "https://example.com/external.ts";
+const b = "b";
+export { b as b };
+"#,
+      output.code.split_once("//# sourceMappingURL").unwrap().0
+    );
+  }
+
+  #[tokio::test]
   async fn bundle_shebang_file() {
+    let root = "file:///test.ts";
     let input = concat!(
       "#!/usr/bin/env -S deno run --allow-read\n",
       "console.log(5)",
     );
-    let graph = setup("file:///test.ts", vec![("file:///test.ts", input)])
-      .await
-      .0;
+    let module = Source::Module {
+      specifier: root,
+      maybe_headers: None,
+      content: input,
+    };
+    let graph = setup(root, vec![(root, module)]).await.0;
 
     let output = bundle_graph(
       &graph,
