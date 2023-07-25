@@ -8,6 +8,7 @@ use anyhow::Result;
 use deno_graph::source::LoadResponse;
 use deno_graph::BuildOptions;
 use deno_graph::CapturingModuleAnalyzer;
+use deno_graph::GraphKind;
 use deno_graph::ModuleGraph;
 use deno_graph::ParsedSourceStore;
 use import_map::ImportMap;
@@ -35,7 +36,7 @@ pub async fn bundle(
   let maybe_import_map =
     get_import_map_from_input(&maybe_import_map, loader).await?;
   let import_map_resolver = ImportMapResolver(maybe_import_map);
-  let mut graph = ModuleGraph::default();
+  let mut graph = ModuleGraph::new(GraphKind::CodeOnly);
   graph
     .build(
       vec![root],
@@ -60,7 +61,7 @@ pub async fn transpile(
   let maybe_import_map =
     get_import_map_from_input(&maybe_import_map, loader).await?;
   let import_map_resolver = ImportMapResolver(maybe_import_map);
-  let mut graph = ModuleGraph::default();
+  let mut graph = ModuleGraph::new(GraphKind::CodeOnly);
   graph
     .build(
       vec![root],
