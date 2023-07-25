@@ -172,10 +172,10 @@ pub fn bundle_graph(
       external_modules: graph
         .modules()
         .filter_map(|m| match m {
-          Module::External(ext) => {
-            Some(JsWord::from(ext.specifier.to_string()))
+          Module::External(_) | Module::Node(_) | Module::Npm(_) => {
+            Some(JsWord::from(m.specifier().to_string()))
           }
-          _ => None,
+          Module::Esm(_) | Module::Json(_) => None,
         })
         .collect(),
       ..Default::default()
