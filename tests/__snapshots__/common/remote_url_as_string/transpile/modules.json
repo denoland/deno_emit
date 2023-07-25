@@ -6,7 +6,6 @@
   "https://deno.land/std@0.140.0/bytes/mod.ts": "remote/NNRNTa3nQ9cRguYpg8Fa19sQDzU/std@0.140.0/bytes/mod.ts",
   "https://deno.land/std@0.140.0/examples/chat/server.ts": "remote/NNRNTa3nQ9cRguYpg8Fa19sQDzU/std@0.140.0/examples/chat/server.ts",
   "https://deno.land/std@0.140.0/io/buffer.ts": "remote/NNRNTa3nQ9cRguYpg8Fa19sQDzU/std@0.140.0/io/buffer.ts",
-  "https://deno.land/std@0.140.0/io/types.d.ts": "remote/NNRNTa3nQ9cRguYpg8Fa19sQDzU/std@0.140.0/io/types.d.ts",
   "https://deno.land/std@0.140.0/path/_constants.ts": "remote/NNRNTa3nQ9cRguYpg8Fa19sQDzU/std@0.140.0/path/_constants.ts",
   "https://deno.land/std@0.140.0/path/_interface.ts": "remote/NNRNTa3nQ9cRguYpg8Fa19sQDzU/std@0.140.0/path/_interface.ts",
   "https://deno.land/std@0.140.0/path/_util.ts": "remote/NNRNTa3nQ9cRguYpg8Fa19sQDzU/std@0.140.0/path/_util.ts",
