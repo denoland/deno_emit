@@ -1,3 +1,3 @@
 export function printHello() {
-    console.log("Hello");
+  console.log("Hello");
 }

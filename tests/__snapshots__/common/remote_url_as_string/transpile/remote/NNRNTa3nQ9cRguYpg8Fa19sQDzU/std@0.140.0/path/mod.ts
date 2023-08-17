@@ -10,7 +10,7 @@ import * as _posix from "./posix.ts";
 const path = isWindows ? _win32 : _posix;
 export const win32 = _win32;
 export const posix = _posix;
-export const { basename , delimiter , dirname , extname , format , fromFileUrl , isAbsolute , join , normalize , parse , relative , resolve , sep , toFileUrl , toNamespacedPath  } = path;
+export const { basename, delimiter, dirname, extname, format, fromFileUrl, isAbsolute, join, normalize, parse, relative, resolve, sep, toFileUrl, toNamespacedPath } = path;
 export * from "./common.ts";
 export { SEP, SEP_PATTERN } from "./separator.ts";
 export * from "./_interface.ts";
