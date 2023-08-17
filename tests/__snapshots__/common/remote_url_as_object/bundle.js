@@ -1,9 +1,9 @@
 const osType = (()=>{
-    const { Deno: Deno1  } = globalThis;
+    const { Deno: Deno1 } = globalThis;
     if (typeof Deno1?.build?.os === "string") {
         return Deno1.build.os;
     }
-    const { navigator  } = globalThis;
+    const { navigator } = globalThis;
     if (navigator?.appVersion?.includes?.("Win")) {
         return "windows";
     }
@@ -117,7 +117,7 @@ function resolve(...pathSegments) {
     let resolvedAbsolute = false;
     for(let i = pathSegments.length - 1; i >= -1; i--){
         let path;
-        const { Deno: Deno1  } = globalThis;
+        const { Deno: Deno1 } = globalThis;
         if (i >= 0) {
             path = pathSegments[i];
         } else if (!resolvedDevice) {
@@ -755,7 +755,7 @@ function resolve1(...pathSegments) {
         let path;
         if (i >= 0) path = pathSegments[i];
         else {
-            const { Deno: Deno1  } = globalThis;
+            const { Deno: Deno1 } = globalThis;
             if (typeof Deno1?.cwd !== "function") {
                 throw new TypeError("Resolved a relative path without a CWD.");
             }
@@ -1078,14 +1078,14 @@ const mod1 = {
     toFileUrl: toFileUrl1
 };
 const path = isWindows ? mod : mod1;
-const { join: join2 , normalize: normalize2  } = path;
+const { join: join2, normalize: normalize2 } = path;
 const path1 = isWindows ? mod : mod1;
-const { basename: basename2 , delimiter: delimiter2 , dirname: dirname2 , extname: extname2 , format: format2 , fromFileUrl: fromFileUrl2 , isAbsolute: isAbsolute2 , join: join3 , normalize: normalize3 , parse: parse2 , relative: relative2 , resolve: resolve2 , sep: sep2 , toFileUrl: toFileUrl2 , toNamespacedPath: toNamespacedPath2  } = path1;
+const { basename: basename2, delimiter: delimiter2, dirname: dirname2, extname: extname2, format: format2, fromFileUrl: fromFileUrl2, isAbsolute: isAbsolute2, join: join3, normalize: normalize3, parse: parse2, relative: relative2, resolve: resolve2, sep: sep2, toFileUrl: toFileUrl2, toNamespacedPath: toNamespacedPath2 } = path1;
 function isCloser(value) {
     return typeof value === "object" && value != null && "close" in value && typeof value["close"] === "function";
 }
 function readableStreamFromReader(reader, options = {}) {
-    const { autoClose =true , chunkSize =16_640 , strategy  } = options;
+    const { autoClose = true, chunkSize = 16_640, strategy } = options;
     return new ReadableStream({
         async pull (controller) {
             const chunk = new Uint8Array(chunkSize);
@@ -1165,7 +1165,7 @@ async function requestHandler(req) {
     } else if (req.request.method === "GET" && pathname === "/favicon.ico") {
         req.respondWith(Response.redirect("https://deno.land/favicon.ico", 302));
     } else if (req.request.method === "GET" && pathname === "/ws") {
-        const { socket , response  } = Deno.upgradeWebSocket(req.request);
+        const { socket, response } = Deno.upgradeWebSocket(req.request);
         wsHandler(socket);
         req.respondWith(response);
     }

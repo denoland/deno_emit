@@ -3,8 +3,8 @@ import { Buffer } from "../io/buffer.ts";
 const DEFAULT_CHUNK_SIZE = 16_640;
 const DEFAULT_BUFFER_SIZE = 32 * 1024;
 function isCloser(value) {
-    return typeof value === "object" && value != null && "close" in value && // deno-lint-ignore no-explicit-any
-    typeof value["close"] === "function";
+  return typeof value === "object" && value != null && "close" in value && // deno-lint-ignore no-explicit-any
+  typeof value["close"] === "function";
 }
 /** Create a `Deno.Reader` from an iterable of `Uint8Array`s.
  *
@@ -22,81 +22,81 @@ function isCloser(value) {
  *      await Deno.copy(reader, file);
  * ```
  */ export function readerFromIterable(iterable) {
-    const iterator = iterable[Symbol.asyncIterator]?.() ?? iterable[Symbol.iterator]?.();
-    const buffer = new Buffer();
-    return {
-        async read (p) {
-            if (buffer.length == 0) {
-                const result = await iterator.next();
-                if (result.done) {
-                    return null;
-                } else {
-                    if (result.value.byteLength <= p.byteLength) {
-                        p.set(result.value);
-                        return result.value.byteLength;
-                    }
-                    p.set(result.value.subarray(0, p.byteLength));
-                    await writeAll(buffer, result.value.subarray(p.byteLength));
-                    return p.byteLength;
-                }
-            } else {
-                const n = await buffer.read(p);
-                if (n == null) {
-                    return this.read(p);
-                }
-                return n;
-            }
+  const iterator = iterable[Symbol.asyncIterator]?.() ?? iterable[Symbol.iterator]?.();
+  const buffer = new Buffer();
+  return {
+    async read (p) {
+      if (buffer.length == 0) {
+        const result = await iterator.next();
+        if (result.done) {
+          return null;
+        } else {
+          if (result.value.byteLength <= p.byteLength) {
+            p.set(result.value);
+            return result.value.byteLength;
+          }
+          p.set(result.value.subarray(0, p.byteLength));
+          await writeAll(buffer, result.value.subarray(p.byteLength));
+          return p.byteLength;
         }
-    };
+      } else {
+        const n = await buffer.read(p);
+        if (n == null) {
+          return this.read(p);
+        }
+        return n;
+      }
+    }
+  };
 }
 /** Create a `Writer` from a `WritableStreamDefaultWriter`. */ export function writerFromStreamWriter(streamWriter) {
-    return {
-        async write (p) {
-            await streamWriter.ready;
-            await streamWriter.write(p);
-            return p.length;
-        }
-    };
+  return {
+    async write (p) {
+      await streamWriter.ready;
+      await streamWriter.write(p);
+      return p.length;
+    }
+  };
 }
 /** Create a `Reader` from a `ReadableStreamDefaultReader`. */ export function readerFromStreamReader(streamReader) {
-    const buffer = new Buffer();
-    return {
-        async read (p) {
-            if (buffer.empty()) {
-                const res = await streamReader.read();
-                if (res.done) {
-                    return null; // EOF
-                }
-                await writeAll(buffer, res.value);
-            }
-            return buffer.read(p);
+  const buffer = new Buffer();
+  return {
+    async read (p) {
+      if (buffer.empty()) {
+        const res = await streamReader.read();
+        if (res.done) {
+          return null; // EOF
         }
-    };
+        await writeAll(buffer, res.value);
+      }
+      return buffer.read(p);
+    }
+  };
 }
 /** Create a `WritableStream` from a `Writer`. */ export function writableStreamFromWriter(writer, options = {}) {
-    const { autoClose =true  } = options;
-    return new WritableStream({
-        async write (chunk, controller) {
-            try {
-                await writeAll(writer, chunk);
-            } catch (e) {
-                controller.error(e);
-                if (isCloser(writer) && autoClose) {
-                    writer.close();
-                }
-            }
-        },
-        close () {
-            if (isCloser(writer) && autoClose) {
-                writer.close();
-            }
-        },
-        abort () {
-            if (isCloser(writer) && autoClose) {
-                writer.close();
-            }
+  const { autoClose = true } = options;
+  return new WritableStream({
+    async write (chunk, controller) {
+      try {
+        await writeAll(writer, chunk);
+      } catch (e) {
+        controller.error(e);
+        if (isCloser(writer) && autoClose) {
+          writer.close();
         }
-    });
+      }
+    },
+    close () {
+      if (isCloser(writer) && autoClose) {
+        writer.close();
+      }
+    },
+    abort () {
+      if (isCloser(writer) && autoClose) {
+        writer.close();
+      }
+    }
+  });
 }
 /** Create a `ReadableStream` from any kind of iterable.
  *
@@ -134,24 +134,24 @@ function isCloser(value) {
  * await reader.cancel(new Error("Cancelled by consumer."));
  * ```
  */ export function readableStreamFromIterable(iterable) {
-    const iterator = iterable[Symbol.asyncIterator]?.() ?? iterable[Symbol.iterator]?.();
-    return new ReadableStream({
-        async pull (controller) {
-            const { value , done  } = await iterator.next();
-            if (done) {
-                controller.close();
-            } else {
-                controller.enqueue(value);
-            }
-        },
-        async cancel (reason) {
-            if (typeof iterator.throw == "function") {
-                try {
-                    await iterator.throw(reason);
-                } catch  {}
-            }
-        }
-    });
+  const iterator = iterable[Symbol.asyncIterator]?.() ?? iterable[Symbol.iterator]?.();
+  return new ReadableStream({
+    async pull (controller) {
+      const { value, done } = await iterator.next();
+      if (done) {
+        controller.close();
+      } else {
+        controller.enqueue(value);
+      }
+    },
+    async cancel (reason) {
+      if (typeof iterator.throw == "function") {
+        try {
+          await iterator.throw(reason);
+        } catch  {}
+      }
+    }
+  });
 }
 /**
  * Create a `ReadableStream<Uint8Array>` from from a `Deno.Reader`.
@@ -169,33 +169,33 @@ function isCloser(value) {
  * const fileStream = readableStreamFromReader(file);
  * ```
  */ export function readableStreamFromReader(reader, options = {}) {
-    const { autoClose =true , chunkSize =DEFAULT_CHUNK_SIZE , strategy  } = options;
-    return new ReadableStream({
-        async pull (controller) {
-            const chunk = new Uint8Array(chunkSize);
-            try {
-                const read = await reader.read(chunk);
-                if (read === null) {
-                    if (isCloser(reader) && autoClose) {
-                        reader.close();
-                    }
-                    controller.close();
-                    return;
-                }
-                controller.enqueue(chunk.subarray(0, read));
-            } catch (e) {
-                controller.error(e);
-                if (isCloser(reader)) {
-                    reader.close();
-                }
-            }
-        },
-        cancel () {
-            if (isCloser(reader) && autoClose) {
-                reader.close();
-            }
+  const { autoClose = true, chunkSize = DEFAULT_CHUNK_SIZE, strategy } = options;
+  return new ReadableStream({
+    async pull (controller) {
+      const chunk = new Uint8Array(chunkSize);
+      try {
+        const read = await reader.read(chunk);
+        if (read === null) {
+          if (isCloser(reader) && autoClose) {
+            reader.close();
+          }
+          controller.close();
+          return;
         }
-    }, strategy);
+        controller.enqueue(chunk.subarray(0, read));
+      } catch (e) {
+        controller.error(e);
+        if (isCloser(reader)) {
+          reader.close();
+        }
+      }
+    },
+    cancel () {
+      if (isCloser(reader) && autoClose) {
+        reader.close();
+      }
+    }
+  }, strategy);
 }
 /** Read Reader `r` until EOF (`null`) and resolve to the content as
  * Uint8Array`.
@@ -219,9 +219,9 @@ function isCloser(value) {
  * const bufferContent = await readAll(reader);
  * ```
  */ export async function readAll(r) {
-    const buf = new Buffer();
-    await buf.readFrom(r);
-    return buf.bytes();
+  const buf = new Buffer();
+  await buf.readFrom(r);
+  return buf.bytes();
 }
 /** Synchronously reads Reader `r` until EOF (`null`) and returns the content
  * as `Uint8Array`.
@@ -245,9 +245,9 @@ function isCloser(value) {
  * const bufferContent = readAllSync(reader);
  * ```
  */ export function readAllSync(r) {
-    const buf = new Buffer();
-    buf.readFromSync(r);
-    return buf.bytes();
+  const buf = new Buffer();
+  buf.readFromSync(r);
+  return buf.bytes();
 }
 /** Write all the content of the array buffer (`arr`) to the writer (`w`).
  *
@@ -272,10 +272,10 @@ function isCloser(value) {
  * console.log(writer.bytes().length);  // 11
  * ```
  */ export async function writeAll(w, arr) {
-    let nwritten = 0;
-    while(nwritten < arr.length){
-        nwritten += await w.write(arr.subarray(nwritten));
-    }
+  let nwritten = 0;
+  while(nwritten < arr.length){
+    nwritten += await w.write(arr.subarray(nwritten));
+  }
 }
 /** Synchronously write all the content of the array buffer (`arr`) to the
  * writer (`w`).
@@ -301,10 +301,10 @@ function isCloser(value) {
  * console.log(writer.bytes().length);  // 11
  * ```
  */ export function writeAllSync(w, arr) {
-    let nwritten = 0;
-    while(nwritten < arr.length){
-        nwritten += w.writeSync(arr.subarray(nwritten));
-    }
+  let nwritten = 0;
+  while(nwritten < arr.length){
+    nwritten += w.writeSync(arr.subarray(nwritten));
+  }
 }
 /** Turns a Reader, `r`, into an async iterator.
  *
@@ -339,15 +339,15 @@ function isCloser(value) {
  * responsibility to copy contents of the buffer if needed; otherwise the
  * next iteration will overwrite contents of previously returned chunk.
  */ export async function* iterateReader(r, options) {
-    const bufSize = options?.bufSize ?? DEFAULT_BUFFER_SIZE;
-    const b = new Uint8Array(bufSize);
-    while(true){
-        const result = await r.read(b);
-        if (result === null) {
-            break;
-        }
-        yield b.subarray(0, result);
+  const bufSize = options?.bufSize ?? DEFAULT_BUFFER_SIZE;
+  const b = new Uint8Array(bufSize);
+  while(true){
+    const result = await r.read(b);
+    if (result === null) {
+      break;
     }
+    yield b.subarray(0, result);
+  }
 }
 /** Turns a ReaderSync, `r`, into an iterator.
  *
@@ -382,15 +382,15 @@ function isCloser(value) {
  * responsibility to copy contents of the buffer if needed; otherwise the
  * next iteration will overwrite contents of previously returned chunk.
  */ export function* iterateReaderSync(r, options) {
-    const bufSize = options?.bufSize ?? DEFAULT_BUFFER_SIZE;
-    const b = new Uint8Array(bufSize);
-    while(true){
-        const result = r.readSync(b);
-        if (result === null) {
-            break;
-        }
-        yield b.subarray(0, result);
+  const bufSize = options?.bufSize ?? DEFAULT_BUFFER_SIZE;
+  const b = new Uint8Array(bufSize);
+  while(true){
+    const result = r.readSync(b);
+    if (result === null) {
+      break;
     }
+    yield b.subarray(0, result);
+  }
 }
 /** Copies from `src` to `dst` until either EOF (`null`) is read from `src` or
  * an error occurs. It resolves to the number of bytes copied or rejects with
@@ -409,21 +409,21 @@ function isCloser(value) {
  * @param dst The destination to copy to
  * @param options Can be used to tune size of the buffer. Default size is 32kB
  */ export async function copy(src, dst, options) {
-    let n = 0;
-    const bufSize = options?.bufSize ?? DEFAULT_BUFFER_SIZE;
-    const b = new Uint8Array(bufSize);
-    let gotEOF = false;
-    while(gotEOF === false){
-        const result = await src.read(b);
-        if (result === null) {
-            gotEOF = true;
-        } else {
-            let nwritten = 0;
-            while(nwritten < result){
-                nwritten += await dst.write(b.subarray(nwritten, result));
-            }
-            n += nwritten;
-        }
+  let n = 0;
+  const bufSize = options?.bufSize ?? DEFAULT_BUFFER_SIZE;
+  const b = new Uint8Array(bufSize);
+  let gotEOF = false;
+  while(gotEOF === false){
+    const result = await src.read(b);
+    if (result === null) {
+      gotEOF = true;
+    } else {
+      let nwritten = 0;
+      while(nwritten < result){
+        nwritten += await dst.write(b.subarray(nwritten, result));
+      }
+      n += nwritten;
     }
-    return n;
+  }
+  return n;
 }

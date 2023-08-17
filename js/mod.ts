@@ -39,7 +39,7 @@ import {
   type CacheSetting,
   createCache,
   type FetchCacher,
-} from "https://deno.land/x/deno_cache@0.4.1/mod.ts";
+} from "https://deno.land/x/deno_cache@0.5.2/mod.ts";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {

@@ -1,6 +1,6 @@
 const React = {
-    createElement () {}
+  createElement () {}
 };
 export default function app() {
-    return /*#__PURE__*/ React.createElement("div", null, /*#__PURE__*/ React.createElement("h2", null, "asdf"));
+  return /*#__PURE__*/ React.createElement("div", null, /*#__PURE__*/ React.createElement("h2", null, "asdf"));
 }
