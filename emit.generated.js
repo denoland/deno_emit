@@ -1,7 +1,7 @@
 // @generated file from wasmbuild -- do not edit
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
-// source-hash: 62f6a5ba82bbd1f967edc58fec897e03534eb155
+// source-hash: f1bed9755cfb4631936f873eda0185938a7c3be7
 let wasm;
 
 const heap = new Array(128).fill(undefined);
@@ -237,7 +237,7 @@ function makeMutClosure(arg0, arg1, dtor, f) {
   return real;
 }
 function __wbg_adapter_46(arg0, arg1, arg2) {
-  wasm.wasm_bindgen__convert__closures__invoke1_mut__h522271ea7ee1814e(
+  wasm.wasm_bindgen__convert__closures__invoke1_mut__ha851bd10d9140b84(
     arg0,
     arg1,
     addHeapObject(arg2),
@@ -322,7 +322,7 @@ function handleError(f, args) {
   }
 }
 function __wbg_adapter_95(arg0, arg1, arg2, arg3) {
-  wasm.wasm_bindgen__convert__closures__invoke2_mut__h159a3bb2be13d07d(
+  wasm.wasm_bindgen__convert__closures__invoke2_mut__h0112501d341b0330(
     arg0,
     arg1,
     addHeapObject(arg2),
@@ -498,12 +498,13 @@ const imports = {
         return addHeapObject(ret);
       }, arguments);
     },
-    __wbg_call_4c73e4aecced6a7d: function () {
-      return handleError(function (arg0, arg1, arg2, arg3) {
+    __wbg_call_7f98f4764e617d86: function () {
+      return handleError(function (arg0, arg1, arg2, arg3, arg4) {
         const ret = getObject(arg0).call(
           getObject(arg1),
           getObject(arg2),
           getObject(arg3),
+          getObject(arg4),
         );
         return addHeapObject(ret);
       }, arguments);
@@ -615,8 +616,8 @@ const imports = {
       const ret = wasm.memory;
       return addHeapObject(ret);
     },
-    __wbindgen_closure_wrapper745: function (arg0, arg1, arg2) {
-      const ret = makeMutClosure(arg0, arg1, 125, __wbg_adapter_46);
+    __wbindgen_closure_wrapper559: function (arg0, arg1, arg2) {
+      const ret = makeMutClosure(arg0, arg1, 106, __wbg_adapter_46);
       return addHeapObject(ret);
     },
   },
