@@ -132,12 +132,14 @@ impl Loader for JsLoader {
     &mut self,
     specifier: &ModuleSpecifier,
     is_dynamic: bool,
+    cache_setting: deno_graph::source::CacheSetting,
   ) -> LoadFuture {
     let specifier = specifier.clone();
     let this = JsValue::null();
     let arg0 = JsValue::from(specifier.to_string());
     let arg1 = JsValue::from(is_dynamic);
-    let result = self.load.call2(&this, &arg0, &arg1);
+    let arg2 = JsValue::from(cache_setting.as_js_str());
+    let result = self.load.call2(&this, &arg0, &arg1, &arg2);
     let f = async move {
       let response = match result {
         Ok(result) => {

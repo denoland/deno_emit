@@ -24,6 +24,7 @@ pub use emit::TranspileOptions;
 pub use deno_ast::EmitOptions;
 pub use deno_ast::ImportsNotUsedAsValues;
 pub use deno_ast::ModuleSpecifier;
+pub use deno_graph::source::CacheSetting;
 pub use deno_graph::source::LoadFuture;
 pub use deno_graph::source::Loader;
 
@@ -112,9 +113,12 @@ async fn get_import_map_from_input(
   if let Some(input) = maybe_input {
     match input {
       ImportMapInput::ModuleSpecifier(url) => {
-        let response = loader.load(url, false).await?.ok_or_else(|| {
-          anyhow::anyhow!("Could not find import map {}", url)
-        })?;
+        let response = loader
+          .load(url, false, CacheSetting::Use)
+          .await?
+          .ok_or_else(|| {
+            anyhow::anyhow!("Could not find import map {}", url)
+          })?;
         match response {
           LoadResponse::External { specifier } => Err(anyhow::anyhow!(
             "Did not expect external import map {}",
