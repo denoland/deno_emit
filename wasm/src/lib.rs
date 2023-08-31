@@ -3,12 +3,12 @@
 use anyhow::anyhow;
 use deno_emit::BundleOptions;
 use deno_emit::BundleType;
+use deno_emit::CacheSetting;
 use deno_emit::EmitOptions;
 use deno_emit::ImportMapInput;
 use deno_emit::ImportsNotUsedAsValues;
 use deno_emit::LoadFuture;
 use deno_emit::Loader;
-use deno_emit::CacheSetting;
 use deno_emit::ModuleSpecifier;
 use deno_emit::TranspileOptions;
 use url::Url;
