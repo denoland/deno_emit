@@ -123,7 +123,7 @@ export interface CompilerOptions {
   inlineSources?: boolean;
   /** Controls how JSX constructs are emitted in JavaScript files. This only
    * affects output of JS files that started in `.jsx` or `.tsx` files. */
-  jsx?: "preserve" | "react-jsx" | "react-jsxdev" | "react-native"  | "react";
+  jsx?: "preserve" | "react-jsx" | "react-jsxdev" | "react-native" | "react";
   /** Changes the function called in `.js` files when compiling JSX Elements
    * using the classic JSX runtime. The most common change is to use `"h"` or
    * `"preact.h"`. */
@@ -131,14 +131,6 @@ export interface CompilerOptions {
   /** Specify the JSX fragment factory function to use when targeting react JSX
    * emit with jsxFactory compiler option is specified, e.g. `Fragment`. */
   jsxFragmentFactory?: string;
-  /** When set, the transpiler uses implicit JSX import sources */
-  jsxAutomatic?: boolean;
-  /** If JSX is automatic, if it is in development mode, meaning that it should
-   * import `jsx-dev-runtime` and transform JSX using `jsxDEV` import from the
-   * SX import source as well as provide additional debug information to the
-   * JSX factory.
-   */
-  jsxDevelopment?: boolean;
   /**  When transforming JSX, what value should be used for the JSX factory.
    * Defaults to `React.createElement`. */
   jsxImportSource?: string;

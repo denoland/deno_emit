@@ -46,7 +46,7 @@ impl Default for CompilerOptions {
       jsx: "react".to_string(),
       jsx_factory: "React.createElement".to_string(),
       jsx_fragment_factory: "React.Fragment".to_string(),
-      jsx_automatic: false,
+      jsx_automatic: true,
       jsx_development: false,
       jsx_import_source: None,
       source_map: false,
@@ -73,8 +73,8 @@ impl From<CompilerOptions> for EmitOptions {
       transform_jsx: options.jsx == "react" || options.jsx == "react-jsx" || options.jsx == "react-jsxdev",
       var_decl_imports: false,
       source_map: options.source_map,
-      jsx_automatic: options.jsx_automatic,
-      jsx_development: options.jsx_development,
+      jsx_automatic: options.jsx == "react-jsx" || options.jsx == "react-jsxdev",
+      jsx_development: options.jsx == "react-jsxdev",
       jsx_import_source: options.jsx_import_source,
     }
   }
