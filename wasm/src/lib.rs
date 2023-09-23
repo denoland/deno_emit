@@ -29,6 +29,9 @@ pub struct CompilerOptions {
   pub jsx: String,
   pub jsx_factory: String,
   pub jsx_fragment_factory: String,
+  pub jsx_automatic: bool,
+  pub jsx_development: bool,
+  pub jsx_import_source: Option<String>,
   pub source_map: bool,
 }
 
@@ -43,6 +46,9 @@ impl Default for CompilerOptions {
       jsx: "react".to_string(),
       jsx_factory: "React.createElement".to_string(),
       jsx_fragment_factory: "React.Fragment".to_string(),
+      jsx_automatic: false,
+      jsx_development: false,
+      jsx_import_source: None,
       source_map: false,
     }
   }
@@ -64,12 +70,12 @@ impl From<CompilerOptions> for EmitOptions {
       inline_sources: options.inline_sources,
       jsx_factory: options.jsx_factory,
       jsx_fragment_factory: options.jsx_fragment_factory,
-      transform_jsx: options.jsx == "react",
+      transform_jsx: options.jsx == "react" || options.jsx == "react-jsx" || options.jsx == "react-jsxdev",
       var_decl_imports: false,
       source_map: options.source_map,
-      jsx_automatic: false,
-      jsx_development: false,
-      jsx_import_source: None,
+      jsx_automatic: options.jsx_automatic,
+      jsx_development: options.jsx_development,
+      jsx_import_source: options.jsx_import_source,
     }
   }
 }
