@@ -29,8 +29,6 @@ pub struct CompilerOptions {
   pub jsx: String,
   pub jsx_factory: String,
   pub jsx_fragment_factory: String,
-  pub jsx_automatic: bool,
-  pub jsx_development: bool,
   pub jsx_import_source: Option<String>,
   pub source_map: bool,
 }
@@ -46,8 +44,6 @@ impl Default for CompilerOptions {
       jsx: "react".to_string(),
       jsx_factory: "React.createElement".to_string(),
       jsx_fragment_factory: "React.Fragment".to_string(),
-      jsx_automatic: true,
-      jsx_development: false,
       jsx_import_source: None,
       source_map: false,
     }
