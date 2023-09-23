@@ -76,7 +76,6 @@ async function testJSXTransform(
 
         const filePath = resolveFixture(`jsx/${testCase.expectedOutput}`);
         const expectedContent = await Deno.readTextFile(filePath);
-        Deno.writeTextFileSync("./gen.js", generatedContent);
 
         assertEquals(
           generatedContent,
