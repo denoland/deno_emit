@@ -11,6 +11,7 @@ use deno_graph::CapturingModuleAnalyzer;
 use deno_graph::GraphKind;
 use deno_graph::ModuleGraph;
 use deno_graph::ParsedSourceStore;
+use deno_graph::source::ResolveError;
 use import_map::ImportMap;
 use std::collections::HashMap;
 use url::Url;
@@ -163,7 +164,7 @@ impl deno_graph::source::Resolver for ImportMapResolver {
     &self,
     specifier: &str,
     referrer: &ModuleSpecifier,
-  ) -> Result<ModuleSpecifier, anyhow::Error> {
+  ) -> Result<ModuleSpecifier, ResolveError> {
     let maybe_import_map = &self.0;
 
     let maybe_import_map_err = match maybe_import_map
@@ -176,7 +177,7 @@ impl deno_graph::source::Resolver for ImportMapResolver {
     };
 
     if let Some(err) = maybe_import_map_err {
-      Err(err.into())
+      Err(ResolveError::Other(err.into()))
     } else {
       deno_graph::resolve_import(specifier, referrer).map_err(|err| err.into())
     }
