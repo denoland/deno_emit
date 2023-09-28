@@ -6,12 +6,12 @@ mod text;
 
 use anyhow::Result;
 use deno_graph::source::LoadResponse;
+use deno_graph::source::ResolveError;
 use deno_graph::BuildOptions;
 use deno_graph::CapturingModuleAnalyzer;
 use deno_graph::GraphKind;
 use deno_graph::ModuleGraph;
 use deno_graph::ParsedSourceStore;
-use deno_graph::source::ResolveError;
 use import_map::ImportMap;
 use std::collections::HashMap;
 use url::Url;
