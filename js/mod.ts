@@ -77,6 +77,8 @@ export interface BundleOptions {
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
   load?: FetchCacher["load"];
+  /** Minify compiled code, default false. */
+  minify?: boolean;
   /** Should the emitted bundle be an ES module or an IIFE script. The default
    * is `"module"` to output a ESM module. */
   type?: "module" | "classic";
@@ -166,6 +168,7 @@ export async function bundle(
     compilerOptions,
     importMap,
     load,
+    minify,
     type,
   } = options;
 
@@ -183,6 +186,7 @@ export async function bundle(
     type,
     processImportMapInput(importMap),
     compilerOptions,
+    minify ?? false,
   );
   return {
     code: result.code,

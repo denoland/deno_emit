@@ -43,6 +43,18 @@ Deno.test({
 });
 
 Deno.test({
+    name: "minified json import",
+    fn: testBundle(
+        resolveFixture("json_import.ts"),
+        { minify: true },
+        async ({ outputFileUrl }) => {
+            const output = await runModule(outputFileUrl);
+            assertStringIncludes(output, "with space");
+        },
+    ),
+});
+
+Deno.test({
   name: "circular",
   fn: testBundle(
     resolveFixture("circular1.ts"),
