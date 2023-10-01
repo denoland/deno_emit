@@ -206,6 +206,7 @@ pub async fn bundle(
       bundle_type,
       emit_options,
       emit_ignore_directives: false,
+      minify: false,
     },
   )
   .await
