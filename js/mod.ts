@@ -131,7 +131,7 @@ export interface CompilerOptions {
   /** Specify the JSX fragment factory function to use when targeting react JSX
    * emit with jsxFactory compiler option is specified, e.g. `Fragment`. */
   jsxFragmentFactory?: string;
-  /** The string module specifier to implicitly import JSX factories from when 
+  /** The string module specifier to implicitly import JSX factories from when
    * transpiling JSX. */
   jsxImportSource?: string;
   /** Enables the generation of sourcemap files. */

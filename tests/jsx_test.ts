@@ -18,7 +18,7 @@ Deno.test({
     {
       compilerOptions: {
         jsx: "react",
-      }
+      },
     },
   ),
 });
@@ -30,7 +30,7 @@ Deno.test({
     {
       compilerOptions: {
         jsx: "react-native",
-      }
+      },
     },
   ),
 });
@@ -42,7 +42,7 @@ Deno.test({
     {
       compilerOptions: {
         jsx: "preserve",
-      }
+      },
     },
   ),
 });
@@ -54,7 +54,7 @@ Deno.test({
     {
       compilerOptions: {
         jsx: "react-jsx",
-      }
+      },
     },
   ),
 });
@@ -67,7 +67,32 @@ Deno.test({
       compilerOptions: {
         jsx: "react-jsx",
         jsxImportSource: "example",
-      }
+      },
+    },
+  ),
+});
+
+Deno.test({
+  name: "jsx type react-jsxdev",
+  fn: testTranspile(
+    resolveFixture("jsx/main.tsx"),
+    {
+      compilerOptions: {
+        jsx: "react-jsxdev",
+      },
+    },
+  ),
+});
+
+Deno.test({
+  name: "jsx type react-jsxdev with custom import source",
+  fn: testTranspile(
+    resolveFixture("jsx/main.tsx"),
+    {
+      compilerOptions: {
+        jsx: "react-jsxdev",
+        jsxImportSource: "example",
+      },
     },
   ),
 });
