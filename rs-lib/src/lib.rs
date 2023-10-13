@@ -164,6 +164,7 @@ impl deno_graph::source::Resolver for ImportMapResolver {
     &self,
     specifier: &str,
     referrer: &ModuleSpecifier,
+    _mode: deno_graph::source::ResolutionMode,
   ) -> Result<ModuleSpecifier, ResolveError> {
     let maybe_import_map = &self.0;
 
