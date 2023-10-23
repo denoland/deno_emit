@@ -202,12 +202,13 @@ pub fn bundle_graph(
     let mut buf = Vec::new();
     let mut srcmap = Vec::new();
     {
-      let cfg = swc::codegen::Config {
-        minify: false,
-        ascii_only: false,
-        target: deno_ast::ES_VERSION,
-        omit_last_semi: false,
-      };
+      // can't use struct expr because Config has #[non_exhaustive]
+      let mut cfg = swc::codegen::Config::default();
+      cfg.minify = false;
+      cfg.ascii_only = false;
+      cfg.target = deno_ast::ES_VERSION;
+      cfg.omit_last_semi = false;
+      cfg.emit_assert_for_import_attributes = false;
       let mut wr = Box::new(swc::codegen::text_writer::JsWriter::new(
         cm.clone(),
         "\n",
