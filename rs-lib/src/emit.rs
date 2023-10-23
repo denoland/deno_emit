@@ -53,6 +53,7 @@ pub struct BundleOptions {
   pub bundle_type: BundleType,
   pub emit_options: EmitOptions,
   pub emit_ignore_directives: bool,
+  pub minify: bool,
 }
 
 pub struct TranspileOptions {
@@ -203,7 +204,7 @@ pub fn bundle_graph(
     let mut srcmap = Vec::new();
     {
       let cfg = swc::codegen::Config {
-        minify: false,
+        minify: options.minify,
         ascii_only: false,
         target: deno_ast::ES_VERSION,
         omit_last_semi: false,
@@ -401,6 +402,7 @@ export const b = "b";
         bundle_type: crate::BundleType::Module,
         emit_ignore_directives: false,
         emit_options: Default::default(),
+        minify: false,
       },
     )
     .unwrap();
@@ -411,6 +413,25 @@ const b = "b";
 export { b as b };
 "#,
       output.code.split_once("//# sourceMappingURL").unwrap().0
+    );
+
+    let minified_output = bundle_graph(
+      &graph,
+      BundleOptions {
+        bundle_type: crate::BundleType::Module,
+        emit_ignore_directives: false,
+        emit_options: Default::default(),
+        minify: true,
+      },
+    )
+    .unwrap();
+    assert_eq!(
+      r#"import"https://example.com/external.ts";const b="b";export{b as b};"#,
+      minified_output
+        .code
+        .split_once("//# sourceMappingURL")
+        .unwrap()
+        .0
     );
   }
 
@@ -434,6 +455,7 @@ export { b as b };
         bundle_type: crate::BundleType::Module,
         emit_ignore_directives: false,
         emit_options: Default::default(),
+        minify: false,
       },
     )
     .unwrap();

@@ -167,6 +167,7 @@ pub async fn bundle(
   maybe_bundle_type: Option<String>,
   maybe_import_map: JsValue,
   maybe_compiler_options: JsValue,
+  minify: bool,
 ) -> Result<JsValue, JsValue> {
   // todo(dsherret): eliminate all the duplicate `.map_err`s
   let compiler_options: CompilerOptions = serde_wasm_bindgen::from_value::<
@@ -206,6 +207,7 @@ pub async fn bundle(
       bundle_type,
       emit_options,
       emit_ignore_directives: false,
+      minify,
     },
   )
   .await
