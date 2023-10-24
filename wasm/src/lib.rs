@@ -58,6 +58,7 @@ impl From<CompilerOptions> for EmitOptions {
       };
 
     Self {
+      precompile_jsx: false,
       emit_metadata: options.emit_decorator_metadata,
       imports_not_used_as_values,
       inline_source_map: options.inline_source_map,
