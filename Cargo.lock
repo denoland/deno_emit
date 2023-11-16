@@ -273,7 +273,7 @@ dependencies = [
 
 [[package]]
 name = "deno_emit"
-version = "0.31.3"
+version = "0.31.4"
 dependencies = [
  "anyhow",
  "base64",
