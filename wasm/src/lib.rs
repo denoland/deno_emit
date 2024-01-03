@@ -72,6 +72,7 @@ impl From<CompilerOptions> for EmitOptions {
       jsx_automatic: options.jsx == "react-jsx" || options.jsx == "react-jsxdev",
       jsx_development: options.jsx == "react-jsxdev",
       jsx_import_source: options.jsx_import_source,
+      precompile_jsx: false
     }
   }
 }

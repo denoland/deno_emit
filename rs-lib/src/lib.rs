@@ -5,15 +5,20 @@ mod emit;
 mod text;
 
 use anyhow::Result;
+use deno_graph::Range;
 use deno_graph::source::LoadResponse;
 use deno_graph::BuildOptions;
 use deno_graph::CapturingModuleAnalyzer;
 use deno_graph::GraphKind;
 use deno_graph::ModuleGraph;
 use deno_graph::ParsedSourceStore;
+use deno_graph::source::ResolutionMode;
+use deno_graph::source::ResolveError;
 use import_map::ImportMap;
 use std::collections::HashMap;
 use url::Url;
+
+use deno_ast::ParsedSource;
 
 pub use emit::bundle_graph;
 pub use emit::BundleEmit;
@@ -162,13 +167,14 @@ impl deno_graph::source::Resolver for ImportMapResolver {
   fn resolve(
     &self,
     specifier: &str,
-    referrer: &ModuleSpecifier,
-  ) -> Result<ModuleSpecifier, anyhow::Error> {
+    referrer_range: &Range,
+    _mode: ResolutionMode
+  ) -> Result<ModuleSpecifier, ResolveError> {
     let maybe_import_map = &self.0;
 
     let maybe_import_map_err = match maybe_import_map
       .as_ref()
-      .map(|import_map| import_map.resolve(specifier, referrer))
+      .map(|import_map| import_map.resolve(specifier, &referrer_range.specifier))
     {
       Some(Ok(value)) => return Ok(value),
       Some(Err(err)) => Some(err),
@@ -176,9 +182,9 @@ impl deno_graph::source::Resolver for ImportMapResolver {
     };
 
     if let Some(err) = maybe_import_map_err {
-      Err(err.into())
+      Err(ResolveError::Other(err.into()))
     } else {
-      deno_graph::resolve_import(specifier, referrer).map_err(|err| err.into())
+      deno_graph::resolve_import(specifier, &referrer_range.specifier).map_err(|err| err.into())
     }
   }
 }
