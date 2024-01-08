@@ -3,6 +3,7 @@
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use base64::Engine;
 use deno_ast::get_syntax;
 use deno_ast::swc;
 use deno_ast::swc::atoms::JsWord;
@@ -246,11 +247,8 @@ pub fn bundle_graph(
       cm.build_source_map_with_config(&srcmap, None, source_map_config)
         .to_writer(&mut buf)?;
       if options.emit_options.inline_source_map {
-        let encoded_map = format!(
-          "//# sourceMappingURL=data:application/json;base64,{}\n",
-          base64::encode(buf)
-        );
-        code.push_str(&encoded_map);
+        code.push_str("//# sourceMappingURL=data:application/json;base64,");
+        base64::prelude::BASE64_STANDARD.encode_string(buf, &mut code);
       } else if options.emit_options.source_map {
         maybe_map = Some(String::from_utf8(buf)?);
       }
