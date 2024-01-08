@@ -9,15 +9,15 @@ authors = ["the Deno authors"]
 license = "MIT"
 
 [dependencies]
-anyhow = "1.0.44"
-base64 = "0.13.0"
-deno_ast = { version = "0.31.5", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
-deno_graph = "0.62.0"
+anyhow = { workspace = true }
+base64 = { workspace = true }
+deno_ast = { version = "1.0.1", features = ["bundler", "codegen", "module_specifier", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
+deno_graph = { version = "0.63.0", default-features = true }
 escape8259 = "0.5.2"
 futures = "0.3.17"
-import_map = "0.18.0"
+import_map = "0.18.1"
 parking_lot = { version = "0.11.2" }
-url = { version = "2.3.1" }
+url = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = "1.0.0"
