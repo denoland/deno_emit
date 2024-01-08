@@ -14,7 +14,7 @@ See [js/README.md](js/README.md).
 
 ---
 
-Copyright 2018-2022 the Deno authors. All rights reserved. MIT License.
+Copyright 2018-2024 the Deno authors. All rights reserved. MIT License.
 
 [Build Status - Cirrus]: https://github.com/denoland/deno_emit/workflows/ci/badge.svg?branch=main&event=push
 [Build status]: https://github.com/denoland/deno_emit/actions
