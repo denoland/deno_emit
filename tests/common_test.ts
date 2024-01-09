@@ -1,4 +1,4 @@
-// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 import { toFileUrl } from "https://deno.land/std@0.182.0/path/mod.ts";
 import {
   assertEquals,
