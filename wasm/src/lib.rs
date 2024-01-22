@@ -58,6 +58,7 @@ impl From<CompilerOptions> for EmitOptions {
       };
 
     Self {
+      use_ts_decorators: true,
       precompile_jsx: false,
       emit_metadata: options.emit_decorator_metadata,
       imports_not_used_as_values,
