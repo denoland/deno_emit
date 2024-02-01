@@ -185,7 +185,7 @@ export async function bundle(
   const result = await jsBundle(
     locationToUrl(root).toString(),
     (specifier: string, isDynamic: boolean, cacheSetting: CacheSetting) => {
-      return bundleLoad!(specifier, isDynamic, cacheSetting).then(result => {
+      return bundleLoad!(specifier, isDynamic, cacheSetting).then((result) => {
         if (result?.kind === "module") {
           if (typeof result.content === "string") {
             result.content = encoder.encode(result.content);
@@ -241,17 +241,19 @@ export async function transpile(
   return jsTranspile(
     locationToUrl(root).toString(),
     (specifier: string, isDynamic: boolean, cacheSetting: CacheSetting) => {
-      return transpileLoad!(specifier, isDynamic, cacheSetting).then(result => {
-        if (result?.kind === "module") {
-          if (typeof result.content === "string") {
-            result.content = encoder.encode(result.content);
+      return transpileLoad!(specifier, isDynamic, cacheSetting).then(
+        (result) => {
+          if (result?.kind === "module") {
+            if (typeof result.content === "string") {
+              result.content = encoder.encode(result.content);
+            }
+            // need to convert to an array for serde_wasm_bindgen to work
+            // deno-lint-ignore no-explicit-any
+            (result as any).content = Array.from(result.content);
           }
-          // need to convert to an array for serde_wasm_bindgen to work
-          // deno-lint-ignore no-explicit-any
-          (result as any).content = Array.from(result.content);
-        }
-        return result;
-      });
+          return result;
+        },
+      );
     },
     processImportMapInput(importMap),
     compilerOptions,
