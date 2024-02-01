@@ -81,7 +81,7 @@ pub async fn transpile(
 
   let mut map = HashMap::new();
 
-  for module in graph.modules().filter_map(|m| m.esm()) {
+  for module in graph.modules().filter_map(|m| m.js()) {
     if let Some(parsed_source) = analyzer.get_parsed_source(&module.specifier) {
       let transpiled_source = parsed_source.transpile(&options.emit_options)?;
 
@@ -131,8 +131,11 @@ async fn get_import_map_from_input(
             specifier,
             maybe_headers: _,
           } => {
-            let import_map =
-              import_map::parse_from_json(&specifier, &content)?.import_map;
+            let import_map = import_map::parse_from_json(
+              &specifier,
+              &String::from_utf8(content.to_vec())?,
+            )?
+            .import_map;
             Ok(Some(import_map))
           }
         }

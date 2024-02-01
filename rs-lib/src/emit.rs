@@ -81,9 +81,9 @@ impl swc::bundler::Load for BundleLoader<'_> {
     match file_name {
       swc::common::FileName::Url(specifier) => {
         let (source, media_type) = match self.graph.get(specifier) {
-          Some(Module::Esm(m)) => (&m.source, m.media_type),
+          Some(Module::Js(m)) => (&m.source, m.media_type),
           Some(Module::Json(m)) => (&m.source, m.media_type),
-          Some(_) => {
+          Some(Module::Npm(_) | Module::Node(_) | Module::External(_)) => {
             return Err(anyhow!(
               "Module \"{}\" was an unsupported module kind.",
               specifier
@@ -98,7 +98,7 @@ impl swc::bundler::Load for BundleLoader<'_> {
         };
         let (fm, module) = transpile_module(
           specifier,
-          source,
+          source.as_ref(),
           media_type,
           self.emit_options,
           self.cm.clone(),
@@ -177,7 +177,7 @@ pub fn bundle_graph(
           Module::External(_) | Module::Node(_) | Module::Npm(_) => {
             Some(JsWord::from(m.specifier().to_string()))
           }
-          Module::Esm(_) | Module::Json(_) => None,
+          Module::Js(_) | Module::Json(_) => None,
         })
         .collect(),
       ..Default::default()
@@ -259,8 +259,9 @@ pub fn bundle_graph(
 }
 
 fn shebang_file(graph: &deno_graph::ModuleGraph) -> Option<String> {
-  let module = graph.get(graph.roots.get(0)?)?.esm()?;
-  let first_line = module.source.lines().next()?;
+  let module = graph.get(graph.roots.get(0)?)?.js()?;
+  let source = &module.source;
+  let first_line = source.lines().next()?;
   if first_line.starts_with("#!") {
     Some(first_line.to_string())
   } else {
