@@ -171,6 +171,7 @@ pub async fn bundle(
   maybe_compiler_options: JsValue,
   minify: bool,
 ) -> Result<JsValue, JsValue> {
+  console_error_panic_hook::set_once();
   // todo(dsherret): eliminate all the duplicate `.map_err`s
   let compiler_options: CompilerOptions = serde_wasm_bindgen::from_value::<
     Option<CompilerOptions>,
@@ -229,6 +230,7 @@ pub async fn transpile(
   maybe_import_map: JsValue,
   maybe_compiler_options: JsValue,
 ) -> Result<JsValue, JsValue> {
+  console_error_panic_hook::set_once();
   let compiler_options: CompilerOptions = serde_wasm_bindgen::from_value::<
     Option<CompilerOptions>,
   >(maybe_compiler_options)
