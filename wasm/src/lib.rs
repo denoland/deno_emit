@@ -22,6 +22,7 @@ use wasm_bindgen::prelude::*;
 #[derive(Debug)]
 pub struct CompilerOptions {
   pub check_js: bool,
+  pub experimental_decorators: bool,
   pub emit_decorator_metadata: bool,
   pub imports_not_used_as_values: String,
   pub inline_source_map: bool,
@@ -35,6 +36,7 @@ pub struct CompilerOptions {
 impl Default for CompilerOptions {
   fn default() -> Self {
     Self {
+      experimental_decorators: false,
       check_js: false,
       emit_decorator_metadata: false,
       imports_not_used_as_values: "remove".to_string(),
@@ -58,7 +60,8 @@ impl From<CompilerOptions> for EmitOptions {
       };
 
     Self {
-      use_ts_decorators: true,
+      use_decorators_proposal: !options.experimental_decorators,
+      use_ts_decorators: options.experimental_decorators,
       precompile_jsx: false,
       emit_metadata: options.emit_decorator_metadata,
       imports_not_used_as_values,
