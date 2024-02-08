@@ -1,1 +1,3 @@
-const helloWorld = <div id="helloWorld"></div>;
+const helloWorld = /*#__PURE__*/ React.createElement("div", {
+  id: "helloWorld"
+});

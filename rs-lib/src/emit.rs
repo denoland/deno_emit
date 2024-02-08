@@ -203,7 +203,7 @@ pub fn bundle_graph(
     );
     let output = bundler
       .bundle(entries)
-      .context("Unable to output during bundling.")?;
+      .context("Unable to output during bundling")?;
     let mut buf = Vec::new();
     let mut srcmap = Vec::new();
     {

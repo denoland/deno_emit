@@ -36,12 +36,13 @@ Deno.test({
 });
 
 Deno.test({
-  name: "jsx type react",
-  fn: testTranspileAndBundle(
+  name: "jsx type precompile",
+  fn: testTranspile(
     resolveFixture("jsx/main.tsx"),
     {
       compilerOptions: {
         jsx: "precompile",
+        jsxImportSource: "jsx-precompile"
       },
     },
   ),

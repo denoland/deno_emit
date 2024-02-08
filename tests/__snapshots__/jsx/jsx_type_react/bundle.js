@@ -1,1 +1,3 @@
-<div id="helloWorld"></div>;
+React.createElement("div", {
+    id: "helloWorld"
+});
