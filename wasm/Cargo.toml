@@ -17,6 +17,7 @@ anyhow = { workspace = true }
 base64 = { workspace = true }
 console_error_panic_hook = "0.1.7"
 deno_emit = { path = "../rs-lib" }
+getrandom = { version = "*", features = ["js"] }
 js-sys = { version = "=0.3.64" }
 serde = { version = "1.0.130", features = ["derive", "rc"] }
 url = { workspace = true }
