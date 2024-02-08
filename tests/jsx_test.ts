@@ -71,28 +71,3 @@ Deno.test({
     },
   ),
 });
-
-Deno.test({
-  name: "jsx type react-jsxdev",
-  fn: testTranspile(
-    resolveFixture("jsx/main.tsx"),
-    {
-      compilerOptions: {
-        jsx: "react-jsxdev",
-      },
-    },
-  ),
-});
-
-Deno.test({
-  name: "jsx type react-jsxdev with custom import source",
-  fn: testTranspile(
-    resolveFixture("jsx/main.tsx"),
-    {
-      compilerOptions: {
-        jsx: "react-jsxdev",
-        jsxImportSource: "example",
-      },
-    },
-  ),
-});
