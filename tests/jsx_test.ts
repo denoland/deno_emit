@@ -36,6 +36,18 @@ Deno.test({
 });
 
 Deno.test({
+  name: "jsx type react",
+  fn: testTranspileAndBundle(
+    resolveFixture("jsx/main.tsx"),
+    {
+      compilerOptions: {
+        jsx: "precompile",
+      },
+    },
+  ),
+});
+
+Deno.test({
   name: "jsx type preserve",
   fn: testTranspileAndBundle(
     resolveFixture("jsx/main.tsx"),

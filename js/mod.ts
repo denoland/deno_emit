@@ -129,7 +129,7 @@ export interface CompilerOptions {
   inlineSources?: boolean;
   /** Controls how JSX constructs are emitted in JavaScript files. This only
    * affects output of JS files that started in `.jsx` or `.tsx` files. */
-  jsx?: "preserve" | "react-jsx" | "react-jsxdev" | "react-native" | "react";
+  jsx?: "precompile" | "preserve" | "react-jsx" | "react-jsxdev" | "react-native" | "react";
   /** Changes the function called in `.js` files when compiling JSX Elements
    * using the classic JSX runtime. The most common change is to use `"h"` or
    * `"preact.h"`. */
