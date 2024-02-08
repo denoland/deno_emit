@@ -109,6 +109,8 @@ export interface TranspileOptions {
 
 export interface CompilerOptions {
   checkJs?: boolean;
+  /** Whether to use TypeScript's experimental decorators. */
+  experimentalDecorators?: boolean;
   /** Determines if reflection meta data is emitted for legacy decorators or
    * not.  Defaults to `false`. */
   emitDecoratorMetadata?: boolean;
@@ -127,7 +129,13 @@ export interface CompilerOptions {
   inlineSources?: boolean;
   /** Controls how JSX constructs are emitted in JavaScript files. This only
    * affects output of JS files that started in `.jsx` or `.tsx` files. */
-  jsx?: "jsx" | "preserve";
+  jsx?:
+    | "precompile"
+    | "preserve"
+    | "react-jsx"
+    | "react-jsxdev"
+    | "react-native"
+    | "react";
   /** Changes the function called in `.js` files when compiling JSX Elements
    * using the classic JSX runtime. The most common change is to use `"h"` or
    * `"preact.h"`. */
@@ -135,6 +143,9 @@ export interface CompilerOptions {
   /** Specify the JSX fragment factory function to use when targeting react JSX
    * emit with jsxFactory compiler option is specified, e.g. `Fragment`. */
   jsxFragmentFactory?: string;
+  /** The string module specifier to implicitly import JSX factories from when
+   * transpiling JSX. */
+  jsxImportSource?: string;
   /** Enables the generation of sourcemap files. */
   sourceMap?: boolean;
 }
