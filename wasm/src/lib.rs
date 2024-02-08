@@ -61,6 +61,16 @@ impl From<CompilerOptions> for EmitOptions {
         _ => ImportsNotUsedAsValues::Remove,
       };
 
+    // copied from the CLI
+    let (transform_jsx, jsx_automatic, jsx_development, precompile_jsx) =
+      match options.jsx.as_str() {
+        "react" => (true, false, false, false),
+        "react-jsx" => (true, true, false, false),
+        "react-jsxdev" => (true, true, true, false),
+        "precompile" => (false, false, false, true),
+        _ => (false, false, false, false),
+      };
+
     Self {
       use_decorators_proposal: !options.experimental_decorators,
       use_ts_decorators: options.experimental_decorators,
@@ -70,16 +80,13 @@ impl From<CompilerOptions> for EmitOptions {
       inline_sources: options.inline_sources,
       jsx_factory: options.jsx_factory,
       jsx_fragment_factory: options.jsx_fragment_factory,
-      transform_jsx: options.jsx == "react"
-        || options.jsx == "react-jsx"
-        || options.jsx == "react-jsxdev",
+      transform_jsx,
       var_decl_imports: false,
       source_map: options.source_map,
-      jsx_automatic: options.jsx == "react-jsx"
-        || options.jsx == "react-jsxdev",
-      jsx_development: options.jsx == "react-jsxdev",
+      jsx_automatic,
+      jsx_development,
       jsx_import_source: options.jsx_import_source,
-      precompile_jsx: false,
+      precompile_jsx,
     }
   }
 }
@@ -184,10 +191,10 @@ pub async fn bundle(
   let compiler_options: CompilerOptions = serde_wasm_bindgen::from_value::<
     Option<CompilerOptions>,
   >(maybe_compiler_options)
-  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
+  .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?
   .unwrap_or_default();
   let root = ModuleSpecifier::parse(&root)
-    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+    .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
   let mut loader = JsLoader::new(load);
   let emit_options: EmitOptions = compiler_options.into();
   let bundle_type = match maybe_bundle_type.as_deref() {
@@ -202,13 +209,13 @@ pub async fn bundle(
   let maybe_import_map = serde_wasm_bindgen::from_value::<
     Option<ImportMapJsInput>,
   >(maybe_import_map)
-  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
+  .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?
   .map(|js_input| {
     let result: anyhow::Result<ImportMapInput> = js_input.try_into();
     result
   })
   .transpose()
-  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
 
   let result = deno_emit::bundle(
     root,
@@ -222,13 +229,13 @@ pub async fn bundle(
     },
   )
   .await
-  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
 
   serde_wasm_bindgen::to_value(&SerializableBundleEmit {
     code: result.code,
     maybe_map: result.maybe_map,
   })
-  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))
+  .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))
 }
 
 #[wasm_bindgen]
@@ -242,23 +249,23 @@ pub async fn transpile(
   let compiler_options: CompilerOptions = serde_wasm_bindgen::from_value::<
     Option<CompilerOptions>,
   >(maybe_compiler_options)
-  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
+  .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?
   .unwrap_or_default();
   let root = ModuleSpecifier::parse(&root)
-    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+    .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
   let mut loader = JsLoader::new(load);
   let emit_options: EmitOptions = compiler_options.into();
 
   let maybe_import_map = serde_wasm_bindgen::from_value::<
     Option<ImportMapJsInput>,
   >(maybe_import_map)
-  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?
+  .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?
   .map(|js_input| {
     let result: anyhow::Result<ImportMapInput> = js_input.try_into();
     result
   })
   .transpose()
-  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
 
   let map = deno_emit::transpile(
     root,
@@ -267,8 +274,8 @@ pub async fn transpile(
     TranspileOptions { emit_options },
   )
   .await
-  .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
 
   serde_wasm_bindgen::to_value(&map)
-    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))
+    .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))
 }
