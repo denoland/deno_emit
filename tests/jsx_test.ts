@@ -42,7 +42,7 @@ Deno.test({
     {
       compilerOptions: {
         jsx: "precompile",
-        jsxImportSource: "jsx-precompile"
+        jsxImportSource: "jsx-precompile",
       },
     },
   ),
