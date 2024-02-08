@@ -30,6 +30,7 @@ pub struct CompilerOptions {
   pub jsx: String,
   pub jsx_factory: String,
   pub jsx_fragment_factory: String,
+  pub jsx_import_source: Option<String>,
   pub source_map: bool,
 }
 
@@ -45,6 +46,7 @@ impl Default for CompilerOptions {
       jsx: "react".to_string(),
       jsx_factory: "React.createElement".to_string(),
       jsx_fragment_factory: "React.Fragment".to_string(),
+      jsx_import_source: None,
       source_map: false,
     }
   }
@@ -62,19 +64,22 @@ impl From<CompilerOptions> for EmitOptions {
     Self {
       use_decorators_proposal: !options.experimental_decorators,
       use_ts_decorators: options.experimental_decorators,
-      precompile_jsx: false,
       emit_metadata: options.emit_decorator_metadata,
       imports_not_used_as_values,
       inline_source_map: options.inline_source_map,
       inline_sources: options.inline_sources,
       jsx_factory: options.jsx_factory,
       jsx_fragment_factory: options.jsx_fragment_factory,
-      transform_jsx: options.jsx == "react",
+      transform_jsx: options.jsx == "react"
+        || options.jsx == "react-jsx"
+        || options.jsx == "react-jsxdev",
       var_decl_imports: false,
       source_map: options.source_map,
-      jsx_automatic: false,
-      jsx_development: false,
-      jsx_import_source: None,
+      jsx_automatic: options.jsx == "react-jsx"
+        || options.jsx == "react-jsxdev",
+      jsx_development: options.jsx == "react-jsxdev",
+      jsx_import_source: options.jsx_import_source,
+      precompile_jsx: false,
     }
   }
 }
