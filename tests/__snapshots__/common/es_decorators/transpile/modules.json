@@ -1,0 +1,4 @@
+{
+  "file:///es_decorators.ts": "local/es_decorators.ts",
+  "file:///subdir/more_decorators.ts": "local/subdir/more_decorators.ts"
+}

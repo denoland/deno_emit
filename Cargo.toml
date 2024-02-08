@@ -1,8 +1,14 @@
 [workspace]
+resolver = "2"
 members = [
   "rs-lib",
   "wasm"
 ]
+
+[workspace.dependencies]
+anyhow = "1.0.44"
+base64 = "0.21.5"
+url = { version = "2.3.1" }
 
 [profile.release]
 codegen-units = 1

@@ -1,8 +1,9 @@
-// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
+use base64::Engine;
 use deno_ast::get_syntax;
 use deno_ast::swc;
 use deno_ast::swc::atoms::JsWord;
@@ -11,10 +12,10 @@ use deno_ast::swc::common::FileName;
 use deno_ast::swc::common::Mark;
 use deno_ast::swc::parser::lexer::Lexer;
 use deno_ast::swc::parser::StringInput;
-use deno_ast::Diagnostic;
 use deno_ast::EmitOptions;
 use deno_ast::MediaType;
 use deno_ast::ModuleSpecifier;
+use deno_ast::ParseDiagnostic;
 use deno_ast::SourceTextInfo;
 use deno_graph::Module;
 use std::collections::HashMap;
@@ -53,6 +54,7 @@ pub struct BundleOptions {
   pub bundle_type: BundleType,
   pub emit_options: EmitOptions,
   pub emit_ignore_directives: bool,
+  pub minify: bool,
 }
 
 pub struct TranspileOptions {
@@ -79,9 +81,9 @@ impl swc::bundler::Load for BundleLoader<'_> {
     match file_name {
       swc::common::FileName::Url(specifier) => {
         let (source, media_type) = match self.graph.get(specifier) {
-          Some(Module::Esm(m)) => (&m.source, m.media_type),
+          Some(Module::Js(m)) => (&m.source, m.media_type),
           Some(Module::Json(m)) => (&m.source, m.media_type),
-          Some(_) => {
+          Some(Module::Npm(_) | Module::Node(_) | Module::External(_)) => {
             return Err(anyhow!(
               "Module \"{}\" was an unsupported module kind.",
               specifier
@@ -96,7 +98,7 @@ impl swc::bundler::Load for BundleLoader<'_> {
         };
         let (fm, module) = transpile_module(
           specifier,
-          source,
+          source.as_ref(),
           media_type,
           self.emit_options,
           self.cm.clone(),
@@ -122,7 +124,7 @@ impl swc::bundler::Resolve for BundleResolver<'_> {
     &self,
     referrer: &swc::common::FileName,
     specifier: &str,
-  ) -> Result<swc::common::FileName> {
+  ) -> Result<swc::loader::resolve::Resolution> {
     let referrer = if let swc::common::FileName::Url(referrer) = referrer {
       referrer
     } else {
@@ -135,7 +137,10 @@ impl swc::bundler::Resolve for BundleResolver<'_> {
     if let Some(specifier) =
       self.0.resolve_dependency(specifier, referrer, false)
     {
-      Ok(deno_ast::swc::common::FileName::Url(specifier))
+      Ok(swc::loader::resolve::Resolution {
+        filename: deno_ast::swc::common::FileName::Url(specifier),
+        slug: None,
+      })
     } else {
       Err(anyhow!(
         "Cannot resolve \"{}\" from \"{}\".",
@@ -175,7 +180,7 @@ pub fn bundle_graph(
           Module::External(_) | Module::Node(_) | Module::Npm(_) => {
             Some(JsWord::from(m.specifier().to_string()))
           }
-          Module::Esm(_) | Module::Json(_) => None,
+          Module::Js(_) | Module::Json(_) => None,
         })
         .collect(),
       ..Default::default()
@@ -202,12 +207,13 @@ pub fn bundle_graph(
     let mut buf = Vec::new();
     let mut srcmap = Vec::new();
     {
-      let cfg = swc::codegen::Config::default()
-        .with_ascii_only(false)
-        .with_minify(false)
-        .with_target(deno_ast::ES_VERSION)
-        .with_omit_last_semi(false);
-      
+      // can't use struct expr because Config has #[non_exhaustive]
+      let mut cfg = swc::codegen::Config::default();
+      cfg.minify = options.minify;
+      cfg.ascii_only = false;
+      cfg.target = deno_ast::ES_VERSION;
+      cfg.omit_last_semi = false;
+      cfg.emit_assert_for_import_attributes = false;
       let mut wr = Box::new(swc::codegen::text_writer::JsWriter::new(
         cm.clone(),
         "\n",
@@ -244,11 +250,8 @@ pub fn bundle_graph(
       cm.build_source_map_with_config(&srcmap, None, source_map_config)
         .to_writer(&mut buf)?;
       if options.emit_options.inline_source_map {
-        let encoded_map = format!(
-          "//# sourceMappingURL=data:application/json;base64,{}\n",
-          base64::encode(buf)
-        );
-        code.push_str(&encoded_map);
+        code.push_str("//# sourceMappingURL=data:application/json;base64,");
+        base64::prelude::BASE64_STANDARD.encode_string(buf, &mut code);
       } else if options.emit_options.source_map {
         maybe_map = Some(String::from_utf8(buf)?);
       }
@@ -259,8 +262,9 @@ pub fn bundle_graph(
 }
 
 fn shebang_file(graph: &deno_graph::ModuleGraph) -> Option<String> {
-  let module = graph.get(graph.roots.get(0)?)?.esm()?;
-  let first_line = module.source.lines().next()?;
+  let module = graph.get(graph.roots.first()?)?.js()?;
+  let source = &module.source;
+  let first_line = source.lines().next()?;
   if first_line.starts_with("#!") {
     Some(first_line.to_string())
   } else {
@@ -294,9 +298,9 @@ fn transpile_module(
   let lexer = Lexer::new(syntax, deno_ast::ES_VERSION, input, Some(&comments));
   let mut parser = swc::parser::Parser::new_from(lexer);
   let module = parser.parse_module().map_err(|e| {
-    Diagnostic::from_swc_error(
+    ParseDiagnostic::from_swc_error(
       e,
-      specifier.as_str(),
+      specifier,
       SourceTextInfo::from_string(source_file.src.to_string()),
     )
   })?;
@@ -308,9 +312,7 @@ fn transpile_module(
       let info = SourceTextInfo::from_string(source_file.src.to_string());
       diagnostics
         .into_iter()
-        .map(|e| {
-          Diagnostic::from_swc_error(e, specifier.as_str(), info.clone())
-        })
+        .map(|e| ParseDiagnostic::from_swc_error(e, specifier, info.clone()))
         .collect::<Vec<_>>()
     }
   };
@@ -401,6 +403,7 @@ export const b = "b";
         bundle_type: crate::BundleType::Module,
         emit_ignore_directives: false,
         emit_options: Default::default(),
+        minify: false,
       },
     )
     .unwrap();
@@ -411,6 +414,25 @@ const b = "b";
 export { b as b };
 "#,
       output.code.split_once("//# sourceMappingURL").unwrap().0
+    );
+
+    let minified_output = bundle_graph(
+      &graph,
+      BundleOptions {
+        bundle_type: crate::BundleType::Module,
+        emit_ignore_directives: false,
+        emit_options: Default::default(),
+        minify: true,
+      },
+    )
+    .unwrap();
+    assert_eq!(
+      r#"import"https://example.com/external.ts";const b="b";export{b as b};"#,
+      minified_output
+        .code
+        .split_once("//# sourceMappingURL")
+        .unwrap()
+        .0
     );
   }
 
@@ -434,6 +456,7 @@ export { b as b };
         bundle_type: crate::BundleType::Module,
         emit_ignore_directives: false,
         emit_options: Default::default(),
+        minify: false,
       },
     )
     .unwrap();

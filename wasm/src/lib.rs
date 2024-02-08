@@ -1,4 +1,4 @@
-// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 
 use anyhow::anyhow;
 use deno_emit::BundleOptions;
@@ -22,6 +22,7 @@ use wasm_bindgen::prelude::*;
 #[derive(Debug)]
 pub struct CompilerOptions {
   pub check_js: bool,
+  pub experimental_decorators: bool,
   pub emit_decorator_metadata: bool,
   pub imports_not_used_as_values: String,
   pub inline_source_map: bool,
@@ -36,6 +37,7 @@ pub struct CompilerOptions {
 impl Default for CompilerOptions {
   fn default() -> Self {
     Self {
+      experimental_decorators: false,
       check_js: false,
       emit_decorator_metadata: false,
       imports_not_used_as_values: "remove".to_string(),
@@ -60,6 +62,9 @@ impl From<CompilerOptions> for EmitOptions {
       };
 
     Self {
+      use_decorators_proposal: !options.experimental_decorators,
+      use_ts_decorators: options.experimental_decorators,
+      precompile_jsx: false,
       emit_metadata: options.emit_decorator_metadata,
       imports_not_used_as_values,
       inline_source_map: options.inline_source_map,
@@ -170,7 +175,9 @@ pub async fn bundle(
   maybe_bundle_type: Option<String>,
   maybe_import_map: JsValue,
   maybe_compiler_options: JsValue,
+  minify: bool,
 ) -> Result<JsValue, JsValue> {
+  console_error_panic_hook::set_once();
   // todo(dsherret): eliminate all the duplicate `.map_err`s
   let compiler_options: CompilerOptions = serde_wasm_bindgen::from_value::<
     Option<CompilerOptions>,
@@ -209,6 +216,7 @@ pub async fn bundle(
       bundle_type,
       emit_options,
       emit_ignore_directives: false,
+      minify,
     },
   )
   .await
@@ -228,6 +236,7 @@ pub async fn transpile(
   maybe_import_map: JsValue,
   maybe_compiler_options: JsValue,
 ) -> Result<JsValue, JsValue> {
+  console_error_panic_hook::set_once();
   let compiler_options: CompilerOptions = serde_wasm_bindgen::from_value::<
     Option<CompilerOptions>,
   >(maybe_compiler_options)

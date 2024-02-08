@@ -13,12 +13,14 @@ crate-type = ["cdylib", "rlib"]
 name = "emit"
 
 [dependencies]
-anyhow = "1.0.44"
-base64 = "0.13.0"
+anyhow = { workspace = true }
+base64 = { workspace = true }
+console_error_panic_hook = "0.1.7"
 deno_emit = { path = "../rs-lib" }
-js-sys = { version = "=0.3.63" }
+getrandom = { version = "*", features = ["js"] }
+js-sys = { version = "=0.3.64" }
 serde = { version = "1.0.130", features = ["derive", "rc"] }
-url = { version = "2.3.1" }
-wasm-bindgen = { version = "=0.2.86" }
-wasm-bindgen-futures = { version = "=0.4.36" }
+url = { workspace = true }
+wasm-bindgen = { version = "=0.2.87" }
+wasm-bindgen-futures = { version = "=0.4.37" }
 serde-wasm-bindgen = "0.5.0"

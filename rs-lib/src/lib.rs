@@ -1,24 +1,21 @@
-// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 
 mod bundle_hook;
 mod emit;
 mod text;
 
 use anyhow::Result;
-use deno_graph::Range;
 use deno_graph::source::LoadResponse;
+use deno_graph::source::ResolveError;
 use deno_graph::BuildOptions;
 use deno_graph::CapturingModuleAnalyzer;
 use deno_graph::GraphKind;
 use deno_graph::ModuleGraph;
 use deno_graph::ParsedSourceStore;
-use deno_graph::source::ResolutionMode;
-use deno_graph::source::ResolveError;
+use deno_graph::Range;
 use import_map::ImportMap;
 use std::collections::HashMap;
 use url::Url;
-
-use deno_ast::ParsedSource;
 
 pub use emit::bundle_graph;
 pub use emit::BundleEmit;
@@ -84,7 +81,7 @@ pub async fn transpile(
 
   let mut map = HashMap::new();
 
-  for module in graph.modules().filter_map(|m| m.esm()) {
+  for module in graph.modules().filter_map(|m| m.js()) {
     if let Some(parsed_source) = analyzer.get_parsed_source(&module.specifier) {
       let transpiled_source = parsed_source.transpile(&options.emit_options)?;
 
@@ -134,8 +131,11 @@ async fn get_import_map_from_input(
             specifier,
             maybe_headers: _,
           } => {
-            let import_map =
-              import_map::parse_from_json(&specifier, &content)?.import_map;
+            let import_map = import_map::parse_from_json(
+              &specifier,
+              &String::from_utf8(content.to_vec())?,
+            )?
+            .import_map;
             Ok(Some(import_map))
           }
         }
@@ -168,23 +168,24 @@ impl deno_graph::source::Resolver for ImportMapResolver {
     &self,
     specifier: &str,
     referrer_range: &Range,
-    _mode: ResolutionMode
+    _mode: deno_graph::source::ResolutionMode,
   ) -> Result<ModuleSpecifier, ResolveError> {
     let maybe_import_map = &self.0;
 
-    let maybe_import_map_err = match maybe_import_map
-      .as_ref()
-      .map(|import_map| import_map.resolve(specifier, &referrer_range.specifier))
-    {
-      Some(Ok(value)) => return Ok(value),
-      Some(Err(err)) => Some(err),
-      None => None,
-    };
+    let maybe_import_map_err =
+      match maybe_import_map.as_ref().map(|import_map| {
+        import_map.resolve(specifier, &referrer_range.specifier)
+      }) {
+        Some(Ok(value)) => return Ok(value),
+        Some(Err(err)) => Some(err),
+        None => None,
+      };
 
     if let Some(err) = maybe_import_map_err {
       Err(ResolveError::Other(err.into()))
     } else {
-      deno_graph::resolve_import(specifier, &referrer_range.specifier).map_err(|err| err.into())
+      deno_graph::resolve_import(specifier, &referrer_range.specifier)
+        .map_err(|err| err.into())
     }
   }
 }

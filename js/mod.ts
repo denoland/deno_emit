@@ -1,4 +1,4 @@
-// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 
 /** APIs to transpile and bundle JavaScript and TypeScript under Deno and Deno.
  *
@@ -32,6 +32,8 @@
  * @module
  */
 
+const encoder = new TextEncoder();
+
 // run `deno task build` to build this
 import { instantiate } from "./emit.generated.js";
 import { locationToUrl } from "./_utils.ts";
@@ -39,7 +41,7 @@ import {
   type CacheSetting,
   createCache,
   type FetchCacher,
-} from "https://deno.land/x/deno_cache@0.5.2/mod.ts";
+} from "https://deno.land/x/deno_cache@0.6.3/mod.ts";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
@@ -77,6 +79,8 @@ export interface BundleOptions {
    * provide a way to use "in-memory" resources instead of fetching them
    * remotely. */
   load?: FetchCacher["load"];
+  /** Minify compiled code, default false. */
+  minify?: boolean;
   /** Should the emitted bundle be an ES module or an IIFE script. The default
    * is `"module"` to output a ESM module. */
   type?: "module" | "classic";
@@ -105,6 +109,8 @@ export interface TranspileOptions {
 
 export interface CompilerOptions {
   checkJs?: boolean;
+  /** Whether to use TypeScript's experimental decorators. */
+  experimentalDecorators?: boolean;
   /** Determines if reflection meta data is emitted for legacy decorators or
    * not.  Defaults to `false`. */
   emitDecoratorMetadata?: boolean;
@@ -169,6 +175,7 @@ export async function bundle(
     compilerOptions,
     importMap,
     load,
+    minify,
     type,
   } = options;
 
@@ -182,10 +189,23 @@ export async function bundle(
   const { bundle: jsBundle } = await instantiate();
   const result = await jsBundle(
     locationToUrl(root).toString(),
-    bundleLoad,
+    (specifier: string, isDynamic: boolean, cacheSetting: CacheSetting) => {
+      return bundleLoad!(specifier, isDynamic, cacheSetting).then((result) => {
+        if (result?.kind === "module") {
+          if (typeof result.content === "string") {
+            result.content = encoder.encode(result.content);
+          }
+          // need to convert to an array for serde_wasm_bindgen to work
+          // deno-lint-ignore no-explicit-any
+          (result as any).content = Array.from(result.content);
+        }
+        return result;
+      });
+    },
     type,
     processImportMapInput(importMap),
     compilerOptions,
+    minify ?? false,
   );
   return {
     code: result.code,
@@ -225,7 +245,21 @@ export async function transpile(
   const { transpile: jsTranspile } = await instantiate();
   return jsTranspile(
     locationToUrl(root).toString(),
-    transpileLoad,
+    (specifier: string, isDynamic: boolean, cacheSetting: CacheSetting) => {
+      return transpileLoad!(specifier, isDynamic, cacheSetting).then(
+        (result) => {
+          if (result?.kind === "module") {
+            if (typeof result.content === "string") {
+              result.content = encoder.encode(result.content);
+            }
+            // need to convert to an array for serde_wasm_bindgen to work
+            // deno-lint-ignore no-explicit-any
+            (result as any).content = Array.from(result.content);
+          }
+          return result;
+        },
+      );
+    },
     processImportMapInput(importMap),
     compilerOptions,
   );

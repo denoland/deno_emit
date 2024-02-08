@@ -1,4 +1,4 @@
-// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 import {
   assertEquals,
   assertStringIncludes,
@@ -38,6 +38,18 @@ Deno.test({
         String
           .raw`const __default = JSON.parse("\"a value with newline\\n, \\\"double quotes\\\", 'single quotes', ${jsInterpolation}\"");`,
       );
+    },
+  ),
+});
+
+Deno.test({
+  name: "minified json import",
+  fn: testBundle(
+    resolveFixture("json_import.ts"),
+    { minify: true },
+    async ({ outputFileUrl }) => {
+      const output = await runModule(outputFileUrl);
+      assertStringIncludes(output, "with space");
     },
   ),
 });

@@ -1,4 +1,4 @@
-// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+// Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 import { toFileUrl } from "https://deno.land/std@0.182.0/path/mod.ts";
 import {
   assertEquals,
@@ -152,8 +152,17 @@ Deno.test({
 });
 
 Deno.test({
+  name: "es decorators",
+  fn: testTranspileAndBundle(resolveFixture("es_decorators.ts")),
+});
+
+Deno.test({
   name: "ts decorators",
-  fn: testTranspileAndBundle(resolveFixture("ts_decorators.ts")),
+  fn: testTranspileAndBundle(resolveFixture("ts_decorators.ts"), {
+    compilerOptions: {
+      experimentalDecorators: true,
+    },
+  }),
 });
 
 Deno.test({

@@ -1,9 +1,9 @@
 {
   "lock": false,
   "tasks": {
-    "test": "deno test --allow-read --allow-net --allow-env --allow-write --allow-run",
-    "update-snapshots": "deno test --allow-read --allow-net --allow-env --allow-write --allow-run -- --update",
-    "build": "cp LICENSE js/LICENSE && deno run -A --unstable https://deno.land/x/wasmbuild@0.14.1/main.ts --out js"
+    "test": "deno test -A",
+    "update-snapshots": "deno test -A -- --update",
+    "build": "cp LICENSE js/LICENSE && deno run -A https://deno.land/x/wasmbuild@0.15.1/main.ts --out js"
   },
   "exclude": [
     "lib",
