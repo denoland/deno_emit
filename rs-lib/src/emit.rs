@@ -262,7 +262,7 @@ pub fn bundle_graph(
 }
 
 fn shebang_file(graph: &deno_graph::ModuleGraph) -> Option<String> {
-  let module = graph.get(graph.roots.get(0)?)?.js()?;
+  let module = graph.get(graph.roots.first()?)?.js()?;
   let source = &module.source;
   let first_line = source.lines().next()?;
   if first_line.starts_with("#!") {
