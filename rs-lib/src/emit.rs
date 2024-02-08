@@ -12,10 +12,10 @@ use deno_ast::swc::common::FileName;
 use deno_ast::swc::common::Mark;
 use deno_ast::swc::parser::lexer::Lexer;
 use deno_ast::swc::parser::StringInput;
-use deno_ast::Diagnostic;
 use deno_ast::EmitOptions;
 use deno_ast::MediaType;
 use deno_ast::ModuleSpecifier;
+use deno_ast::ParseDiagnostic;
 use deno_ast::SourceTextInfo;
 use deno_graph::Module;
 use std::collections::HashMap;
@@ -124,7 +124,7 @@ impl swc::bundler::Resolve for BundleResolver<'_> {
     &self,
     referrer: &swc::common::FileName,
     specifier: &str,
-  ) -> Result<swc::common::FileName> {
+  ) -> Result<swc::loader::resolve::Resolution> {
     let referrer = if let swc::common::FileName::Url(referrer) = referrer {
       referrer
     } else {
@@ -137,7 +137,10 @@ impl swc::bundler::Resolve for BundleResolver<'_> {
     if let Some(specifier) =
       self.0.resolve_dependency(specifier, referrer, false)
     {
-      Ok(deno_ast::swc::common::FileName::Url(specifier))
+      Ok(swc::loader::resolve::Resolution {
+        filename: deno_ast::swc::common::FileName::Url(specifier),
+        slug: None,
+      })
     } else {
       Err(anyhow!(
         "Cannot resolve \"{}\" from \"{}\".",
@@ -295,9 +298,9 @@ fn transpile_module(
   let lexer = Lexer::new(syntax, deno_ast::ES_VERSION, input, Some(&comments));
   let mut parser = swc::parser::Parser::new_from(lexer);
   let module = parser.parse_module().map_err(|e| {
-    Diagnostic::from_swc_error(
+    ParseDiagnostic::from_swc_error(
       e,
-      specifier.as_str(),
+      specifier,
       SourceTextInfo::from_string(source_file.src.to_string()),
     )
   })?;
@@ -309,9 +312,7 @@ fn transpile_module(
       let info = SourceTextInfo::from_string(source_file.src.to_string());
       diagnostics
         .into_iter()
-        .map(|e| {
-          Diagnostic::from_swc_error(e, specifier.as_str(), info.clone())
-        })
+        .map(|e| ParseDiagnostic::from_swc_error(e, specifier, info.clone()))
         .collect::<Vec<_>>()
     }
   };

@@ -109,6 +109,8 @@ export interface TranspileOptions {
 
 export interface CompilerOptions {
   checkJs?: boolean;
+  /** Whether to use TypeScript's experimental decorators. */
+  experimentalDecorators?: boolean;
   /** Determines if reflection meta data is emitted for legacy decorators or
    * not.  Defaults to `false`. */
   emitDecoratorMetadata?: boolean;
