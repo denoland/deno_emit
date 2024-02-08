@@ -152,8 +152,17 @@ Deno.test({
 });
 
 Deno.test({
+  name: "es decorators",
+  fn: testTranspileAndBundle(resolveFixture("es_decorators.ts")),
+});
+
+Deno.test({
   name: "ts decorators",
-  fn: testTranspileAndBundle(resolveFixture("ts_decorators.ts")),
+  fn: testTranspileAndBundle(resolveFixture("ts_decorators.ts"), {
+    compilerOptions: {
+      experimentalDecorators: true,
+    },
+  }),
 });
 
 Deno.test({
