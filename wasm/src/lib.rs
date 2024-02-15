@@ -3,14 +3,15 @@
 use anyhow::anyhow;
 use deno_emit::BundleOptions;
 use deno_emit::BundleType;
-use deno_emit::CacheSetting;
 use deno_emit::EmitOptions;
 use deno_emit::ImportMapInput;
 use deno_emit::ImportsNotUsedAsValues;
 use deno_emit::LoadFuture;
+use deno_emit::LoadOptions;
 use deno_emit::Loader;
 use deno_emit::ModuleSpecifier;
 use deno_emit::TranspileOptions;
+use serde::Serialize;
 use url::Url;
 use wasm_bindgen::prelude::*;
 
@@ -149,15 +150,26 @@ impl Loader for JsLoader {
   fn load(
     &mut self,
     specifier: &ModuleSpecifier,
-    is_dynamic: bool,
-    cache_setting: CacheSetting,
+    options: LoadOptions,
   ) -> LoadFuture {
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct JsLoadOptions {
+      pub is_dynamic: bool,
+      pub cache_setting: &'static str,
+      pub checksum: Option<String>,
+    }
+
     let specifier = specifier.clone();
     let this = JsValue::null();
     let arg0 = JsValue::from(specifier.to_string());
-    let arg1 = JsValue::from(is_dynamic);
-    let arg2 = JsValue::from(cache_setting.as_js_str());
-    let result = self.load.call3(&this, &arg0, &arg1, &arg2);
+    let arg1 = serde_wasm_bindgen::to_value(&JsLoadOptions {
+      is_dynamic: options.is_dynamic,
+      cache_setting: options.cache_setting.as_js_str(),
+      checksum: options.maybe_checksum.map(|c| c.into_string()),
+    })
+    .unwrap();
+    let result = self.load.call2(&this, &arg0, &arg1);
     let f = async move {
       let response = match result {
         Ok(result) => {
