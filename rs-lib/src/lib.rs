@@ -28,7 +28,9 @@ pub use deno_ast::ImportsNotUsedAsValues;
 pub use deno_ast::ModuleSpecifier;
 pub use deno_graph::source::CacheSetting;
 pub use deno_graph::source::LoadFuture;
+pub use deno_graph::source::LoadOptions;
 pub use deno_graph::source::Loader;
+pub use deno_graph::source::LoaderChecksum;
 
 pub async fn bundle(
   root: ModuleSpecifier,
@@ -116,7 +118,14 @@ async fn get_import_map_from_input(
     match input {
       ImportMapInput::ModuleSpecifier(url) => {
         let response = loader
-          .load(url, false, CacheSetting::Use)
+          .load(
+            url,
+            LoadOptions {
+              is_dynamic: false,
+              cache_setting: CacheSetting::Use,
+              maybe_checksum: None,
+            },
+          )
           .await?
           .ok_or_else(|| {
             anyhow::anyhow!("Could not find import map {}", url)
