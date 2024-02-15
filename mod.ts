@@ -41,7 +41,7 @@ import {
   type CacheSetting,
   createCache,
   type FetchCacher,
-} from "https://deno.land/x/deno_cache@0.6.3/mod.ts";
+} from "https://deno.land/x/deno_cache@0.7.1/mod.ts";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
@@ -195,8 +195,17 @@ export async function bundle(
   const { bundle: jsBundle } = await instantiate();
   const result = await jsBundle(
     locationToUrl(root).toString(),
-    (specifier: string, isDynamic: boolean, cacheSetting: CacheSetting) => {
-      return bundleLoad!(specifier, isDynamic, cacheSetting).then((result) => {
+    (specifier: string, options: {
+      isDynamic: boolean;
+      cacheSetting: CacheSetting;
+      checksum: string | undefined;
+    }) => {
+      return bundleLoad!(
+        specifier,
+        options.isDynamic,
+        options.cacheSetting,
+        options.checksum,
+      ).then((result) => {
         if (result?.kind === "module") {
           if (typeof result.content === "string") {
             result.content = encoder.encode(result.content);
