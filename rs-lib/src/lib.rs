@@ -1,5 +1,8 @@
 // Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 
+#![deny(clippy::print_stderr)]
+#![deny(clippy::print_stdout)]
+
 mod bundle_hook;
 mod emit;
 mod text;
