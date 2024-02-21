@@ -34,9 +34,7 @@ function applyDecs2203RFactory() {
     var decoratorFinishedRef = {
       v: false
     };
-    if (kind !== 0) {
-      ctx.addInitializer = createAddInitializerMethod(initializers, decoratorFinishedRef);
-    }
+    ctx.addInitializer = createAddInitializerMethod(initializers, decoratorFinishedRef);
     var get, set;
     if (kind === 0) {
       if (isPrivate) {
@@ -279,16 +277,12 @@ function applyDecs2203RFactory() {
       if (isStatic) {
         base = Class;
         kind = kind - 5;
-        if (kind !== 0) {
-          staticInitializers = staticInitializers || [];
-          initializers = staticInitializers;
-        }
+        staticInitializers = staticInitializers || [];
+        initializers = staticInitializers;
       } else {
         base = Class.prototype;
-        if (kind !== 0) {
-          protoInitializers = protoInitializers || [];
-          initializers = protoInitializers;
-        }
+        protoInitializers = protoInitializers || [];
+        initializers = protoInitializers;
       }
       if (kind !== 0 && !isPrivate) {
         var existingNonFields = isStatic ? existingStaticNonFields : existingProtoNonFields;
