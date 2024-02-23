@@ -17,6 +17,7 @@ use deno_graph::ModuleGraph;
 use deno_graph::ParsedSourceStore;
 use deno_graph::Range;
 use import_map::ImportMap;
+use import_map::ImportMapOptions;
 use std::collections::HashMap;
 use url::Url;
 
@@ -143,9 +144,14 @@ async fn get_import_map_from_input(
             specifier,
             maybe_headers: _,
           } => {
-            let import_map = import_map::parse_from_json(
+            let import_map = import_map::parse_from_json_with_options(
               &specifier,
               &String::from_utf8(content.to_vec())?,
+              ImportMapOptions {
+                address_hook: None,
+                // always do this for simplicity
+                expand_imports: true,
+              },
             )?
             .import_map;
             Ok(Some(import_map))
@@ -156,8 +162,16 @@ async fn get_import_map_from_input(
         base_url,
         json_string,
       } => {
-        let import_map =
-          import_map::parse_from_json(base_url, json_string)?.import_map;
+        let import_map = import_map::parse_from_json_with_options(
+          base_url,
+          json_string,
+          ImportMapOptions {
+            address_hook: None,
+            // always do this for simplicity
+            expand_imports: true,
+          },
+        )?
+        .import_map;
         Ok(Some(import_map))
       }
     }
