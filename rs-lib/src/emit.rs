@@ -251,17 +251,14 @@ pub fn bundle_graph(
         .to_writer(&mut buf)?;
       match options.emit_options.source_map {
         deno_ast::SourceMapOption::Inline => {
-
-        code.push_str("//# sourceMappingURL=data:application/json;base64,");
-        base64::prelude::BASE64_STANDARD.encode_string(buf, &mut code);
-        },
+          code.push_str("//# sourceMappingURL=data:application/json;base64,");
+          base64::prelude::BASE64_STANDARD.encode_string(buf, &mut code);
+        }
         deno_ast::SourceMapOption::Separate => {
-
-        maybe_map = Some(String::from_utf8(buf)?);
-        },
-        deno_ast::SourceMapOption::None => {
-        },
-          }
+          maybe_map = Some(String::from_utf8(buf)?);
+        }
+        deno_ast::SourceMapOption::None => {}
+      }
     }
 
     Ok(BundleEmit { code, maybe_map })

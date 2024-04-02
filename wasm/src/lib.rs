@@ -72,13 +72,13 @@ impl From<CompilerOptions> for EmitOptions {
         "precompile" => (false, false, false, true),
         _ => (false, false, false, false),
       };
-      let source_map = if options.inline_source_map {
-        SourceMapOption::Inline
-      } else if options.source_map {
-        SourceMapOption::Separate
-      } else {
-        SourceMapOption::None
-      };
+    let source_map = if options.inline_source_map {
+      SourceMapOption::Inline
+    } else if options.source_map {
+      SourceMapOption::Separate
+    } else {
+      SourceMapOption::None
+    };
 
     Self {
       use_decorators_proposal: !options.experimental_decorators,

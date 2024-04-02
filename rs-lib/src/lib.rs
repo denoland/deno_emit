@@ -28,9 +28,9 @@ pub use emit::BundleType;
 pub use emit::TranspileOptions;
 
 pub use deno_ast::EmitOptions;
-pub use deno_ast::SourceMapOption;
 pub use deno_ast::ImportsNotUsedAsValues;
 pub use deno_ast::ModuleSpecifier;
+pub use deno_ast::SourceMapOption;
 pub use deno_graph::source::CacheSetting;
 pub use deno_graph::source::LoadFuture;
 pub use deno_graph::source::LoadOptions;
@@ -94,12 +94,12 @@ pub async fn transpile(
 
       map.insert(module.specifier.to_string(), transpiled_source.text);
 
-        if let Some(source_map) = &transpiled_source.source_map {
-          map.insert(
-            format!("{}.map", module.specifier.as_str()),
-            source_map.to_string(),
-          );
-        }
+      if let Some(source_map) = &transpiled_source.source_map {
+        map.insert(
+          format!("{}.map", module.specifier.as_str()),
+          source_map.to_string(),
+        );
+      }
     }
   }
 
