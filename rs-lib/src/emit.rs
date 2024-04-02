@@ -249,12 +249,19 @@ pub fn bundle_graph(
       let mut buf = Vec::new();
       cm.build_source_map_with_config(&srcmap, None, source_map_config)
         .to_writer(&mut buf)?;
-      if options.emit_options.inline_source_map {
+      match options.emit_options.source_map {
+        deno_ast::SourceMapOption::Inline => {
+
         code.push_str("//# sourceMappingURL=data:application/json;base64,");
         base64::prelude::BASE64_STANDARD.encode_string(buf, &mut code);
-      } else if options.emit_options.source_map {
+        },
+        deno_ast::SourceMapOption::Separate => {
+
         maybe_map = Some(String::from_utf8(buf)?);
-      }
+        },
+        deno_ast::SourceMapOption::None => {
+        },
+          }
     }
 
     Ok(BundleEmit { code, maybe_map })
@@ -361,7 +368,7 @@ mod test {
         vec![root.clone()],
         &mut memory_loader,
         BuildOptions {
-          module_analyzer: Some(&analyzer),
+          module_analyzer: &analyzer,
           ..Default::default()
         },
       )
