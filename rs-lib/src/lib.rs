@@ -30,6 +30,7 @@ pub use emit::TranspileOptions;
 pub use deno_ast::EmitOptions;
 pub use deno_ast::ImportsNotUsedAsValues;
 pub use deno_ast::ModuleSpecifier;
+pub use deno_ast::SourceMapOption;
 pub use deno_graph::source::CacheSetting;
 pub use deno_graph::source::LoadFuture;
 pub use deno_graph::source::LoadOptions;
@@ -76,7 +77,7 @@ pub async fn transpile(
       vec![root],
       loader,
       BuildOptions {
-        module_analyzer: Some(&analyzer),
+        module_analyzer: &analyzer,
         resolver: Some(import_map_resolver.as_resolver()),
         ..Default::default()
       },
@@ -92,15 +93,12 @@ pub async fn transpile(
       let transpiled_source = parsed_source.transpile(&options.emit_options)?;
 
       map.insert(module.specifier.to_string(), transpiled_source.text);
-      // TODO: Understand why parsed_source.transpile returns a source map
-      // even when options.emit_options.source_map is false.
-      if options.emit_options.source_map {
-        if let Some(source_map) = &transpiled_source.source_map {
-          map.insert(
-            format!("{}.map", module.specifier.as_str()),
-            source_map.to_string(),
-          );
-        }
+
+      if let Some(source_map) = &transpiled_source.source_map {
+        map.insert(
+          format!("{}.map", module.specifier.as_str()),
+          source_map.to_string(),
+        );
       }
     }
   }

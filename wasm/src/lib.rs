@@ -10,6 +10,7 @@ use deno_emit::LoadFuture;
 use deno_emit::LoadOptions;
 use deno_emit::Loader;
 use deno_emit::ModuleSpecifier;
+use deno_emit::SourceMapOption;
 use deno_emit::TranspileOptions;
 use serde::Serialize;
 use url::Url;
@@ -71,19 +72,26 @@ impl From<CompilerOptions> for EmitOptions {
         "precompile" => (false, false, false, true),
         _ => (false, false, false, false),
       };
+    let source_map = if options.inline_source_map {
+      SourceMapOption::Inline
+    } else if options.source_map {
+      SourceMapOption::Separate
+    } else {
+      SourceMapOption::None
+    };
 
     Self {
       use_decorators_proposal: !options.experimental_decorators,
       use_ts_decorators: options.experimental_decorators,
       emit_metadata: options.emit_decorator_metadata,
       imports_not_used_as_values,
-      inline_source_map: options.inline_source_map,
       inline_sources: options.inline_sources,
       jsx_factory: options.jsx_factory,
       jsx_fragment_factory: options.jsx_fragment_factory,
+      keep_comments: true,
       transform_jsx,
       var_decl_imports: false,
-      source_map: options.source_map,
+      source_map,
       jsx_automatic,
       jsx_development,
       jsx_import_source: options.jsx_import_source,
