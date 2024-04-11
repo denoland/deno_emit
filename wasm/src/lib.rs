@@ -37,7 +37,7 @@ pub struct CompilerOptions {
 }
 
 impl CompilerOptions {
-  pub fn into_options(self) -> (TranspileOptions,EmitOptions) {
+  pub fn into_options(self) -> (TranspileOptions, EmitOptions) {
     let imports_not_used_as_values =
       match self.imports_not_used_as_values.as_str() {
         "preserve" => ImportsNotUsedAsValues::Preserve,
