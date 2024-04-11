@@ -25,12 +25,12 @@ pub use emit::bundle_graph;
 pub use emit::BundleEmit;
 pub use emit::BundleOptions;
 pub use emit::BundleType;
-pub use emit::TranspileOptions;
 
 pub use deno_ast::EmitOptions;
 pub use deno_ast::ImportsNotUsedAsValues;
 pub use deno_ast::ModuleSpecifier;
 pub use deno_ast::SourceMapOption;
+pub use deno_ast::TranspileOptions;
 pub use deno_graph::source::CacheSetting;
 pub use deno_graph::source::LoadFuture;
 pub use deno_graph::source::LoadOptions;
@@ -65,7 +65,8 @@ pub async fn transpile(
   root: ModuleSpecifier,
   loader: &mut dyn Loader,
   maybe_import_map: Option<ImportMapInput>,
-  options: TranspileOptions,
+  transpile_options: &TranspileOptions,
+  emit_options: &EmitOptions,
 ) -> Result<HashMap<String, String>> {
   let analyzer = CapturingModuleAnalyzer::default();
   let maybe_import_map =
@@ -90,7 +91,8 @@ pub async fn transpile(
 
   for module in graph.modules().filter_map(|m| m.js()) {
     if let Some(parsed_source) = analyzer.get_parsed_source(&module.specifier) {
-      let transpiled_source = parsed_source.transpile(&options.emit_options)?;
+      let transpiled_source =
+        parsed_source.transpile(transpile_options, emit_options)?;
 
       map.insert(module.specifier.to_string(), transpiled_source.text);
 

@@ -8,7 +8,6 @@ use deno_ast::get_syntax;
 use deno_ast::swc;
 use deno_ast::swc::atoms::JsWord;
 use deno_ast::swc::common::comments::SingleThreadedComments;
-use deno_ast::swc::common::FileName;
 use deno_ast::swc::common::Mark;
 use deno_ast::swc::parser::lexer::Lexer;
 use deno_ast::swc::parser::StringInput;
@@ -16,7 +15,9 @@ use deno_ast::EmitOptions;
 use deno_ast::MediaType;
 use deno_ast::ModuleSpecifier;
 use deno_ast::ParseDiagnostic;
+use deno_ast::SourceMap;
 use deno_ast::SourceTextInfo;
+use deno_ast::TranspileOptions;
 use deno_graph::Module;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -52,13 +53,10 @@ impl From<BundleType> for swc::bundler::ModuleType {
 
 pub struct BundleOptions {
   pub bundle_type: BundleType,
+  pub transpile_options: TranspileOptions,
   pub emit_options: EmitOptions,
   pub emit_ignore_directives: bool,
   pub minify: bool,
-}
-
-pub struct TranspileOptions {
-  pub emit_options: EmitOptions,
 }
 
 #[derive(Debug)]
@@ -68,8 +66,8 @@ pub struct BundleEmit {
 }
 
 struct BundleLoader<'a> {
-  cm: Rc<swc::common::SourceMap>,
-  emit_options: &'a EmitOptions,
+  cm: &'a SourceMap,
+  transpile_options: &'a TranspileOptions,
   graph: &'a deno_graph::ModuleGraph,
 }
 
@@ -100,8 +98,8 @@ impl swc::bundler::Load for BundleLoader<'_> {
           specifier,
           source.as_ref(),
           media_type,
-          self.emit_options,
-          self.cm.clone(),
+          self.transpile_options,
+          self.cm,
         )?;
         Ok(swc::bundler::ModuleData {
           fm,
@@ -163,13 +161,11 @@ pub fn bundle_graph(
       inline_sources: options.emit_options.inline_sources,
     };
 
-    let cm = Rc::new(swc::common::SourceMap::new(
-      swc::common::FilePathMapping::empty(),
-    ));
+    let cm = SourceMap::default();
     let loader = BundleLoader {
       graph,
-      emit_options: &options.emit_options,
-      cm: cm.clone(),
+      transpile_options: &options.transpile_options,
+      cm: &cm,
     };
     let resolver = BundleResolver(graph);
     let config = swc::bundler::Config {
@@ -190,7 +186,7 @@ pub fn bundle_graph(
     let hook = Box::new(BundleHook);
     let mut bundler = swc::bundler::Bundler::new(
       &globals,
-      cm.clone(),
+      cm.inner().clone(),
       loader,
       resolver,
       config,
@@ -215,7 +211,7 @@ pub fn bundle_graph(
       cfg.omit_last_semi = false;
       cfg.emit_assert_for_import_attributes = false;
       let mut wr = Box::new(swc::codegen::text_writer::JsWriter::new(
-        cm.clone(),
+        cm.inner().clone(),
         "\n",
         &mut buf,
         Some(&mut srcmap),
@@ -230,7 +226,7 @@ pub fn bundle_graph(
 
       let mut emitter = swc::codegen::Emitter {
         cfg,
-        cm: cm.clone(),
+        cm: cm.inner().clone(),
         comments: None,
         wr,
       };
@@ -247,7 +243,8 @@ pub fn bundle_graph(
     let mut maybe_map: Option<String> = None;
     {
       let mut buf = Vec::new();
-      cm.build_source_map_with_config(&srcmap, None, source_map_config)
+      cm.inner()
+        .build_source_map_with_config(&srcmap, None, source_map_config)
         .to_writer(&mut buf)?;
       match options.emit_options.source_map {
         deno_ast::SourceMapOption::Inline => {
@@ -281,8 +278,8 @@ fn transpile_module(
   specifier: &ModuleSpecifier,
   source: &str,
   media_type: MediaType,
-  options: &deno_ast::EmitOptions,
-  cm: Rc<swc::common::SourceMap>,
+  options: &deno_ast::TranspileOptions,
+  cm: &SourceMap,
 ) -> Result<(Rc<swc::common::SourceFile>, swc::ast::Module)> {
   let source = strip_bom(source);
   let source = if media_type == MediaType::Json {
@@ -290,8 +287,7 @@ fn transpile_module(
   } else {
     source.to_string()
   };
-  let source_file =
-    cm.new_source_file(FileName::Url(specifier.clone()), source);
+  let source_file = cm.new_source_file(specifier.clone(), source);
   let input = StringInput::from(&*source_file);
   let comments = SingleThreadedComments::default();
   let syntax = if media_type == MediaType::Json {
@@ -407,6 +403,7 @@ export const b = "b";
         bundle_type: crate::BundleType::Module,
         emit_ignore_directives: false,
         emit_options: Default::default(),
+        transpile_options: Default::default(),
         minify: false,
       },
     )
@@ -426,6 +423,7 @@ export { b as b };
         bundle_type: crate::BundleType::Module,
         emit_ignore_directives: false,
         emit_options: Default::default(),
+        transpile_options: Default::default(),
         minify: true,
       },
     )
@@ -460,6 +458,7 @@ export { b as b };
         bundle_type: crate::BundleType::Module,
         emit_ignore_directives: false,
         emit_options: Default::default(),
+        transpile_options: Default::default(),
         minify: false,
       },
     )
