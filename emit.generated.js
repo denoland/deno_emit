@@ -1,7 +1,7 @@
 // @generated file from wasmbuild -- do not edit
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
-// source-hash: 193e585f4a11b1cf7004d1a1ddc7617be6614dfb
+// source-hash: ed7baf2f39d025612631667516090e1b7afea216
 let wasm;
 
 const heap = new Array(128).fill(undefined);
