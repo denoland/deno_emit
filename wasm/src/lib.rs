@@ -36,6 +36,56 @@ pub struct CompilerOptions {
   pub source_map: bool,
 }
 
+impl CompilerOptions {
+  pub fn into_options(self) -> (TranspileOptions,EmitOptions) {
+    let imports_not_used_as_values =
+      match self.imports_not_used_as_values.as_str() {
+        "preserve" => ImportsNotUsedAsValues::Preserve,
+        "error" => ImportsNotUsedAsValues::Error,
+        _ => ImportsNotUsedAsValues::Remove,
+      };
+
+    // copied from the CLI
+    let (transform_jsx, jsx_automatic, jsx_development, precompile_jsx) =
+      match self.jsx.as_str() {
+        "react" => (true, false, false, false),
+        "react-jsx" => (true, true, false, false),
+        "react-jsxdev" => (true, true, true, false),
+        "precompile" => (false, false, false, true),
+        _ => (false, false, false, false),
+      };
+    let source_map = if self.inline_source_map {
+      SourceMapOption::Inline
+    } else if self.source_map {
+      SourceMapOption::Separate
+    } else {
+      SourceMapOption::None
+    };
+
+    (
+      TranspileOptions {
+        use_decorators_proposal: !self.experimental_decorators,
+        use_ts_decorators: self.experimental_decorators,
+        emit_metadata: self.emit_decorator_metadata,
+        imports_not_used_as_values,
+        jsx_factory: self.jsx_factory,
+        jsx_fragment_factory: self.jsx_fragment_factory,
+        transform_jsx,
+        var_decl_imports: false,
+        jsx_automatic,
+        jsx_development,
+        jsx_import_source: self.jsx_import_source,
+        precompile_jsx,
+      },
+      EmitOptions {
+        inline_sources: self.inline_sources,
+        keep_comments: true,
+        source_map,
+      },
+    )
+  }
+}
+
 impl Default for CompilerOptions {
   fn default() -> Self {
     Self {
@@ -50,52 +100,6 @@ impl Default for CompilerOptions {
       jsx_fragment_factory: "React.Fragment".to_string(),
       jsx_import_source: None,
       source_map: false,
-    }
-  }
-}
-
-impl From<CompilerOptions> for EmitOptions {
-  fn from(options: CompilerOptions) -> Self {
-    let imports_not_used_as_values =
-      match options.imports_not_used_as_values.as_str() {
-        "preserve" => ImportsNotUsedAsValues::Preserve,
-        "error" => ImportsNotUsedAsValues::Error,
-        _ => ImportsNotUsedAsValues::Remove,
-      };
-
-    // copied from the CLI
-    let (transform_jsx, jsx_automatic, jsx_development, precompile_jsx) =
-      match options.jsx.as_str() {
-        "react" => (true, false, false, false),
-        "react-jsx" => (true, true, false, false),
-        "react-jsxdev" => (true, true, true, false),
-        "precompile" => (false, false, false, true),
-        _ => (false, false, false, false),
-      };
-    let source_map = if options.inline_source_map {
-      SourceMapOption::Inline
-    } else if options.source_map {
-      SourceMapOption::Separate
-    } else {
-      SourceMapOption::None
-    };
-
-    Self {
-      use_decorators_proposal: !options.experimental_decorators,
-      use_ts_decorators: options.experimental_decorators,
-      emit_metadata: options.emit_decorator_metadata,
-      imports_not_used_as_values,
-      inline_sources: options.inline_sources,
-      jsx_factory: options.jsx_factory,
-      jsx_fragment_factory: options.jsx_fragment_factory,
-      keep_comments: true,
-      transform_jsx,
-      var_decl_imports: false,
-      source_map,
-      jsx_automatic,
-      jsx_development,
-      jsx_import_source: options.jsx_import_source,
-      precompile_jsx,
     }
   }
 }
@@ -216,7 +220,7 @@ pub async fn bundle(
   let root = ModuleSpecifier::parse(&root)
     .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
   let mut loader = JsLoader::new(load);
-  let emit_options: EmitOptions = compiler_options.into();
+  let (transpile_options, emit_options) = compiler_options.into_options();
   let bundle_type = match maybe_bundle_type.as_deref() {
     Some("module") | None => BundleType::Module,
     Some("classic") => BundleType::Classic,
@@ -245,6 +249,7 @@ pub async fn bundle(
       bundle_type,
       emit_options,
       emit_ignore_directives: false,
+      transpile_options,
       minify,
     },
   )
@@ -274,7 +279,7 @@ pub async fn transpile(
   let root = ModuleSpecifier::parse(&root)
     .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
   let mut loader = JsLoader::new(load);
-  let emit_options: EmitOptions = compiler_options.into();
+  let (transpile_options, emit_options) = compiler_options.into_options();
 
   let maybe_import_map = serde_wasm_bindgen::from_value::<
     Option<ImportMapJsInput>,
@@ -291,7 +296,8 @@ pub async fn transpile(
     root,
     &mut loader,
     maybe_import_map,
-    TranspileOptions { emit_options },
+    &transpile_options,
+    &emit_options,
   )
   .await
   .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
