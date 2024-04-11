@@ -68,7 +68,6 @@ pub struct BundleEmit {
 struct BundleLoader<'a> {
   cm: &'a SourceMap,
   transpile_options: &'a TranspileOptions,
-  emit_options: &'a EmitOptions,
   graph: &'a deno_graph::ModuleGraph,
 }
 
@@ -100,7 +99,7 @@ impl swc::bundler::Load for BundleLoader<'_> {
           source.as_ref(),
           media_type,
           self.transpile_options,
-          &self.cm,
+          self.cm,
         )?;
         Ok(swc::bundler::ModuleData {
           fm,
@@ -166,7 +165,6 @@ pub fn bundle_graph(
     let loader = BundleLoader {
       graph,
       transpile_options: &options.transpile_options,
-      emit_options: &options.emit_options,
       cm: &cm,
     };
     let resolver = BundleResolver(graph);
@@ -322,7 +320,7 @@ fn transpile_module(
   let top_level_mark = Mark::fresh(Mark::root());
   let program = deno_ast::fold_program(
     swc::ast::Program::Module(module),
-    &options,
+    options,
     cm,
     &comments,
     top_level_mark,
