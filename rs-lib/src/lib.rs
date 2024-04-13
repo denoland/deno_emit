@@ -90,9 +90,9 @@ pub async fn transpile(
   let mut map = HashMap::new();
 
   for module in graph.modules().filter_map(|m| m.js()) {
-    if let Some(parsed_source) = analyzer.get_parsed_source(&module.specifier) {
+    if let Some(parsed_source) = analyzer.remove_parsed_source(&module.specifier) {
       let transpiled_source =
-        parsed_source.transpile(transpile_options, emit_options)?;
+        parsed_source.transpile_owned_with_fallback(transpile_options, emit_options)?;
 
       map.insert(module.specifier.to_string(), transpiled_source.text);
 
