@@ -94,7 +94,7 @@ pub async fn transpile(
       analyzer.remove_parsed_source(&module.specifier)
     {
       let transpiled_source = parsed_source
-        .transpile_owned_with_fallback(transpile_options, emit_options)?;
+        .transpile(transpile_options, emit_options)?.into_source();
 
       map.insert(module.specifier.to_string(), transpiled_source.text);
 

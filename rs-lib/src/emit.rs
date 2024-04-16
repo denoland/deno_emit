@@ -12,6 +12,7 @@ use deno_ast::swc::common::Mark;
 use deno_ast::swc::parser::lexer::Lexer;
 use deno_ast::swc::parser::StringInput;
 use deno_ast::EmitOptions;
+use deno_ast::Marks;
 use deno_ast::MediaType;
 use deno_ast::ModuleSpecifier;
 use deno_ast::ParseDiagnostic;
@@ -317,13 +318,16 @@ fn transpile_module(
     }
   };
 
-  let top_level_mark = Mark::fresh(Mark::root());
+  let marks = Marks {
+    top_level: Mark::fresh(Mark::root()),
+    unresolved: Mark::new(),
+  };
   let program = deno_ast::fold_program(
     swc::ast::Program::Module(module),
     options,
     cm,
     &comments,
-    top_level_mark,
+    &marks,
     &diagnostics,
   )?;
   let module = match program {
