@@ -3,7 +3,7 @@
   "tasks": {
     "test": "deno test -A",
     "update-snapshots": "deno test -A -- --update",
-    "build": "cp LICENSE js/LICENSE && deno run -A https://deno.land/x/wasmbuild@0.15.1/main.ts --out js"
+    "build": "cp LICENSE js/LICENSE && deno run -A jsr:@deno/wasmbuild@0.17.1 --out js"
   },
   "exclude": [
     "lib",

@@ -42,8 +42,7 @@ pub async fn bundle(
   maybe_import_map: Option<ImportMapInput>,
   options: BundleOptions,
 ) -> Result<BundleEmit> {
-  let maybe_import_map =
-    get_import_map_from_input(&maybe_import_map)?;
+  let maybe_import_map = get_import_map_from_input(&maybe_import_map)?;
   let import_map_resolver = ImportMapResolver(maybe_import_map);
   let mut graph = ModuleGraph::new(GraphKind::CodeOnly);
   graph
@@ -68,8 +67,7 @@ pub async fn transpile(
   emit_options: &EmitOptions,
 ) -> Result<HashMap<String, String>> {
   let analyzer = CapturingModuleAnalyzer::default();
-  let maybe_import_map =
-    get_import_map_from_input(&maybe_import_map)?;
+  let maybe_import_map = get_import_map_from_input(&maybe_import_map)?;
   let import_map_resolver = ImportMapResolver(maybe_import_map);
   let mut graph = ModuleGraph::new(GraphKind::CodeOnly);
   graph

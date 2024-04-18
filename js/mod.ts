@@ -41,7 +41,7 @@ import {
   type CacheSetting,
   createCache,
   type FetchCacher,
-} from "https://deno.land/x/deno_cache@0.7.1/mod.ts";
+} from "jsr:@deno/cache-dir@0.8";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
@@ -321,7 +321,9 @@ async function processImportMapInput(
       case "module": {
         return {
           baseUrl: locationToUrl(importMap).toString(),
-          jsonString: data.content instanceof Uint8Array ? new TextDecoder().decode(data.content) : data.content,
+          jsonString: data.content instanceof Uint8Array
+            ? new TextDecoder().decode(data.content)
+            : data.content,
         };
       }
       case "external":
@@ -354,7 +356,7 @@ type ImportMapJsLibInput =
   | TranspileOptions["importMap"];
 
 type ImportMapRustLibInput =
-  {
+  | {
     baseUrl: string;
     jsonString: string;
   }
