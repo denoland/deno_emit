@@ -313,6 +313,7 @@ async function processImportMapInput(
   load: FetchCacher["load"],
 ): Promise<ImportMapRustLibInput> {
   if (typeof importMap === "string" || importMap instanceof URL) {
+    importMap = locationToUrl(importMap);
     const data = await load(importMap.toString(), false, "use");
     if (data == null) {
       return undefined;
@@ -320,7 +321,7 @@ async function processImportMapInput(
     switch (data.kind) {
       case "module": {
         return {
-          baseUrl: locationToUrl(importMap).toString(),
+          baseUrl: importMap.toString(),
           jsonString: data.content instanceof Uint8Array
             ? new TextDecoder().decode(data.content)
             : data.content,
@@ -333,8 +334,7 @@ async function processImportMapInput(
         throw new Error("Unexpected kind.");
       }
     }
-  }
-  if (typeof importMap === "object") {
+  } else if (typeof importMap === "object") {
     const { baseUrl, imports, scopes } = importMap;
     const url = locationToUrl(baseUrl ?? Deno.cwd());
     // Rust lib expects url to be the file URL to the import map file, but the
@@ -347,8 +347,9 @@ async function processImportMapInput(
       baseUrl: url.toString(),
       jsonString: JSON.stringify({ imports, scopes }),
     };
+  } else {
+    return undefined;
   }
-  return undefined;
 }
 
 type ImportMapJsLibInput =
