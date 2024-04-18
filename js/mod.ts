@@ -51,7 +51,7 @@ export interface BundleEmit {
   map?: string;
 }
 
-/** An [import-map](https://deno.land/manual/linking_to_external_code/import_maps#import-maps) */
+/** An [import-map](https://docs.deno.com/runtime/manual/basics/import_maps) */
 export interface ImportMap {
   /** Base URL to resolve import map specifiers. It Is always treated as a
    * directory. Defaults to the file URL of `Deno.cwd()`. */
@@ -71,7 +71,7 @@ export interface BundleOptions {
   cacheSetting?: CacheSetting;
   /** Compiler options which can be set when bundling. */
   compilerOptions?: CompilerOptions;
-  /** An [import-map](https://deno.land/manual/linking_to_external_code/import_maps#import-maps)
+  /** An [import-map](https://docs.deno.com/runtime/manual/basics/import_maps)
    * which will be applied to the imports, or the URL of an import map, or the
    * path to an import map */
   importMap?: ImportMap | URL | string;
@@ -96,7 +96,7 @@ export interface TranspileOptions {
   cacheSetting?: CacheSetting;
   /** Compiler options which can be set when transpiling. */
   compilerOptions?: CompilerOptions;
-  /** An [import-map](https://deno.land/manual/linking_to_external_code/import_maps#import-maps)
+  /** An [import-map](https://docs.deno.com/runtime/manual/basics/import_maps)
    * which will be applied to the imports, or the URL of an import map, or the
    * path to an import map */
   importMap?: ImportMap | URL | string;
