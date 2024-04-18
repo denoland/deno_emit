@@ -356,14 +356,14 @@ mod test {
     root: S,
     sources: Vec<(S, Source<S>)>,
   ) -> (ModuleGraph, CapturingModuleAnalyzer, ModuleSpecifier) {
-    let mut memory_loader = MemoryLoader::new(sources, vec![]);
+    let memory_loader = MemoryLoader::new(sources, vec![]);
     let root = ModuleSpecifier::parse(root.as_ref()).unwrap();
     let analyzer = CapturingModuleAnalyzer::default();
     let mut graph = ModuleGraph::new(GraphKind::CodeOnly);
     graph
       .build(
         vec![root.clone()],
-        &mut memory_loader,
+        &memory_loader,
         BuildOptions {
           module_analyzer: &analyzer,
           ..Default::default()

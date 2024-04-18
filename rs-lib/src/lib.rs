@@ -8,7 +8,6 @@ mod emit;
 mod text;
 
 use anyhow::Result;
-use deno_graph::source::LoadResponse;
 use deno_graph::source::ResolveError;
 use deno_graph::BuildOptions;
 use deno_graph::CapturingModuleAnalyzer;
@@ -43,8 +42,7 @@ pub async fn bundle(
   maybe_import_map: Option<ImportMapInput>,
   options: BundleOptions,
 ) -> Result<BundleEmit> {
-  let maybe_import_map =
-    get_import_map_from_input(&maybe_import_map, loader).await?;
+  let maybe_import_map = get_import_map_from_input(&maybe_import_map)?;
   let import_map_resolver = ImportMapResolver(maybe_import_map);
   let mut graph = ModuleGraph::new(GraphKind::CodeOnly);
   graph
@@ -69,8 +67,7 @@ pub async fn transpile(
   emit_options: &EmitOptions,
 ) -> Result<HashMap<String, String>> {
   let analyzer = CapturingModuleAnalyzer::default();
-  let maybe_import_map =
-    get_import_map_from_input(&maybe_import_map, loader).await?;
+  let maybe_import_map = get_import_map_from_input(&maybe_import_map)?;
   let import_map_resolver = ImportMapResolver(maybe_import_map);
   let mut graph = ModuleGraph::new(GraphKind::CodeOnly);
   graph
@@ -112,72 +109,26 @@ pub async fn transpile(
 }
 
 #[derive(Debug)]
-pub enum ImportMapInput {
-  ModuleSpecifier(ModuleSpecifier),
-  Json { base_url: Url, json_string: String },
+pub struct ImportMapInput {
+  pub base_url: Url,
+  pub json_string: String,
 }
 
-async fn get_import_map_from_input(
+fn get_import_map_from_input(
   maybe_input: &Option<ImportMapInput>,
-  loader: &mut dyn Loader,
 ) -> Result<Option<ImportMap>> {
   if let Some(input) = maybe_input {
-    match input {
-      ImportMapInput::ModuleSpecifier(url) => {
-        let response = loader
-          .load(
-            url,
-            LoadOptions {
-              is_dynamic: false,
-              cache_setting: CacheSetting::Use,
-              maybe_checksum: None,
-            },
-          )
-          .await?
-          .ok_or_else(|| {
-            anyhow::anyhow!("Could not find import map {}", url)
-          })?;
-        match response {
-          LoadResponse::External { specifier } => Err(anyhow::anyhow!(
-            "Did not expect external import map {}",
-            specifier
-          )),
-          LoadResponse::Module {
-            content,
-            specifier,
-            maybe_headers: _,
-          } => {
-            let import_map = import_map::parse_from_json_with_options(
-              &specifier,
-              &String::from_utf8(content.to_vec())?,
-              ImportMapOptions {
-                address_hook: None,
-                // always do this for simplicity
-                expand_imports: true,
-              },
-            )?
-            .import_map;
-            Ok(Some(import_map))
-          }
-        }
-      }
-      ImportMapInput::Json {
-        base_url,
-        json_string,
-      } => {
-        let import_map = import_map::parse_from_json_with_options(
-          base_url,
-          json_string,
-          ImportMapOptions {
-            address_hook: None,
-            // always do this for simplicity
-            expand_imports: true,
-          },
-        )?
-        .import_map;
-        Ok(Some(import_map))
-      }
-    }
+    let import_map = import_map::parse_from_json_with_options(
+      &input.base_url,
+      &input.json_string,
+      ImportMapOptions {
+        address_hook: None,
+        // always do this for simplicity
+        expand_imports: true,
+      },
+    )?
+    .import_map;
+    Ok(Some(import_map))
   } else {
     Ok(None)
   }
