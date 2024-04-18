@@ -218,7 +218,7 @@ export async function bundle(
       });
     },
     type,
-    processImportMapInput(importMap),
+    await processImportMapInput(importMap, bundleLoad),
     compilerOptions,
     minify ?? false,
   );
@@ -275,7 +275,7 @@ export async function transpile(
         },
       );
     },
-    processImportMapInput(importMap),
+    await processImportMapInput(importMap, transpileLoad),
     compilerOptions,
   );
 }
@@ -308,11 +308,29 @@ function checkCompilerOptions(
  * @param importMap The import map as provided to the JS API.
  * @returns The import map that must be provided to the Rust API.
  */
-function processImportMapInput(
+async function processImportMapInput(
   importMap: ImportMapJsLibInput,
-): ImportMapRustLibInput {
+  load: FetchCacher["load"],
+): Promise<ImportMapRustLibInput> {
   if (typeof importMap === "string" || importMap instanceof URL) {
-    return locationToUrl(importMap).toString();
+    const data = await load(importMap.toString(), false, "use");
+    if (data == null) {
+      return undefined;
+    }
+    switch (data.kind) {
+      case "module": {
+        return {
+          baseUrl: locationToUrl(importMap).toString(),
+          jsonString: data.content instanceof Uint8Array ? new TextDecoder().decode(data.content) : data.content,
+        };
+      }
+      case "external":
+        throw new Error("External import maps are not supported.");
+      default: {
+        const _assertNever: never = data;
+        throw new Error("Unexpected kind.");
+      }
+    }
   }
   if (typeof importMap === "object") {
     const { baseUrl, imports, scopes } = importMap;
@@ -336,9 +354,8 @@ type ImportMapJsLibInput =
   | TranspileOptions["importMap"];
 
 type ImportMapRustLibInput =
-  | {
+  {
     baseUrl: string;
     jsonString: string;
   }
-  | string
   | undefined;

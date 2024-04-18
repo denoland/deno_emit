@@ -105,36 +105,20 @@ impl Default for CompilerOptions {
 }
 
 #[derive(serde::Deserialize, Debug)]
-#[serde(untagged)]
-enum ImportMapJsInput {
-  ModuleSpecifier(String),
-  #[serde(rename_all = "camelCase")]
-  Json {
-    base_url: String,
-    json_string: String,
-  },
+#[serde(rename_all = "camelCase")]
+struct ImportMapJsInput {
+  base_url: String,
+  json_string: String,
 }
 
 impl TryFrom<ImportMapJsInput> for ImportMapInput {
   type Error = anyhow::Error;
 
   fn try_from(js_input: ImportMapJsInput) -> anyhow::Result<Self> {
-    match js_input {
-      ImportMapJsInput::ModuleSpecifier(specifier) => {
-        let specifier = ModuleSpecifier::parse(&specifier)?;
-        Ok(ImportMapInput::ModuleSpecifier(specifier))
-      }
-      ImportMapJsInput::Json {
-        base_url,
-        json_string,
-      } => {
-        let base_url = Url::parse(&base_url)?;
-        Ok(ImportMapInput::Json {
-          base_url,
-          json_string,
-        })
-      }
-    }
+    Ok(ImportMapInput {
+      base_url: Url::parse(&js_input.base_url)?,
+      json_string: js_input.json_string,
+    })
   }
 }
 
@@ -160,7 +144,7 @@ impl JsLoader {
 
 impl Loader for JsLoader {
   fn load(
-    &mut self,
+    &self,
     specifier: &ModuleSpecifier,
     options: LoadOptions,
   ) -> LoadFuture {
