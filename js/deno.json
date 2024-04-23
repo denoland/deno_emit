@@ -7,5 +7,7 @@
       "!**"
     ]
   },
-  "imports": { "@std/path": "jsr:@std/path@^0.223.0" }
+  "imports": {
+    "@std/path": "jsr:@std/path@^0.223.0"
+  }
 }
