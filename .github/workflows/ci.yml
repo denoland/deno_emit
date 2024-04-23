@@ -79,3 +79,7 @@ jobs:
           token: ${{ secrets.DENOBOT_PAT }}
           git-user-name: denobot
           git-user-email: denobot@users.noreply.github.com
+      
+      - name: Publish to JSR
+        if: contains(matrix.os, 'ubuntu')
+        run: cd js && deno run -A jsr:@david/publish-on-tag@0.1.3
