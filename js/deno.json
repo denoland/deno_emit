@@ -1,0 +1,13 @@
+{
+  "name": "@deno/emit",
+  "version": "0.0.0",
+  "exports": "./mod.ts",
+  "publish": {
+    "exclude": [
+      "!**"
+    ]
+  },
+  "imports": {
+    "@std/path": "jsr:@std/path@^0.223.0"
+  }
+}

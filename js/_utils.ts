@@ -1,8 +1,4 @@
-import {
-  isAbsolute,
-  resolve,
-  toFileUrl,
-} from "https://deno.land/std@0.186.0/path/mod.ts";
+import { isAbsolute, resolve, toFileUrl } from "@std/path";
 
 /**
  * Resolves a location to its canonical URL object.
