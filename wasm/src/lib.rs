@@ -80,6 +80,7 @@ impl CompilerOptions {
       },
       EmitOptions {
         inline_sources: self.inline_sources,
+        source_map_file: None,
         keep_comments: true,
         source_map,
       },
