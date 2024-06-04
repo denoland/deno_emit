@@ -1,5 +1,8 @@
 // Copyright 2018-2024 the Deno authors. All rights reserved. MIT license.
 
+use std::collections::HashMap;
+use std::string::FromUtf8Error;
+
 use anyhow::anyhow;
 use deno_emit::BundleOptions;
 use deno_emit::BundleType;
@@ -81,7 +84,7 @@ impl CompilerOptions {
       EmitOptions {
         inline_sources: self.inline_sources,
         source_map_file: None,
-        keep_comments: true,
+        remove_comments: false,
         source_map,
       },
     )
@@ -287,6 +290,13 @@ pub async fn transpile(
   )
   .await
   .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
+  let map = map
+    .into_iter()
+    .map(|(specifier, source)| {
+      Ok((specifier.to_string(), String::from_utf8(source)?))
+    })
+    .collect::<Result<HashMap<String, String>, FromUtf8Error>>()
+    .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))?;
 
   serde_wasm_bindgen::to_value(&map)
     .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))

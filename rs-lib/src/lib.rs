@@ -65,7 +65,7 @@ pub async fn transpile(
   maybe_import_map: Option<ImportMapInput>,
   transpile_options: &TranspileOptions,
   emit_options: &EmitOptions,
-) -> Result<HashMap<String, String>> {
+) -> Result<HashMap<String, Vec<u8>>> {
   let analyzer = CapturingModuleAnalyzer::default();
   let maybe_import_map = get_import_map_from_input(&maybe_import_map)?;
   let import_map_resolver = ImportMapResolver(maybe_import_map);
@@ -94,13 +94,10 @@ pub async fn transpile(
         .transpile(transpile_options, emit_options)?
         .into_source();
 
-      map.insert(module.specifier.to_string(), transpiled_source.text);
+      map.insert(module.specifier.to_string(), transpiled_source.source);
 
-      if let Some(source_map) = &transpiled_source.source_map {
-        map.insert(
-          format!("{}.map", module.specifier.as_str()),
-          source_map.to_string(),
-        );
+      if let Some(source_map) = transpiled_source.source_map {
+        map.insert(format!("{}.map", module.specifier.as_str()), source_map);
       }
     }
   }
