@@ -97,10 +97,7 @@ pub async fn transpile(
       map.insert(module.specifier.to_string(), transpiled_source.source);
 
       if let Some(source_map) = transpiled_source.source_map {
-        map.insert(
-          format!("{}.map", module.specifier.as_str()),
-          source_map,
-        );
+        map.insert(format!("{}.map", module.specifier.as_str()), source_map);
       }
     }
   }
