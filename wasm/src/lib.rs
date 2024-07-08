@@ -80,6 +80,7 @@ impl CompilerOptions {
         jsx_import_source: self.jsx_import_source,
         precompile_jsx,
         precompile_jsx_skip_elements: None,
+        precompile_jsx_dynamic_props: None,
       },
       EmitOptions {
         inline_sources: self.inline_sources,
