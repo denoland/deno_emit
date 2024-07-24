@@ -1,6 +1,6 @@
 # emit
 
-[![deno emit](https://doc.deno.land/badge.svg)](https://doc.deno.land/https://deno.land/x/emit/mod.ts)
+[![deno emit](https://jsr.io/badges/@deno/emit)](https://jsr.io/@deno/emit)
 
 Transpile and bundle JavaScript and TypeScript in Deno and Deno Deploy.
 
@@ -13,13 +13,13 @@ transpiled fashion. An example of taking some TypeScript and transpiling to
 JavaScript:
 
 ```ts
-import { transpile } from "https://deno.land/x/emit/mod.ts";
+import { transpile } from "jsr:@deno/emit";
 
 const url = new URL("./testdata/mod.ts", import.meta.url);
 const result = await transpile(url);
 
 const code = result.get(url.href);
-console.log(code.includes("export default function hello()"));
+console.log(code?.includes("export default function hello()"));
 ```
 
 ## Bundle
@@ -29,7 +29,7 @@ This is similar to the functionality provided by `deno bundle` on the Deno
 command line. An example:
 
 ```ts
-import { bundle } from "https://deno.land/x/emit/mod.ts";
+import { bundle } from "jsr:@deno/emit";
 const result = await bundle(
   new URL("https://deno.land/std@0.140.0/examples/chat/server.ts"),
 );

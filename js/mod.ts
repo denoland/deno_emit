@@ -8,19 +8,19 @@
  * ### Example - Transpiling
  *
  * ```ts
- * import { transpile } from "https://deno.land/x/emit/mod.ts";
+ * import { transpile } from "jsr:@deno/emit";
  *
  * const url = new URL("./testdata/mod.ts", import.meta.url);
- * const result = await transpile(url.href);
+ * const result = await transpile(url);
  *
- * const { code } = result;
- * console.log(code.includes("export default function hello()"));
+ * const code = result.get(url.href);
+ * console.log(code?.includes("export default function hello()"));
  * ```
  *
  * ### Example - Bundling
  *
  * ```ts
- * import { bundle } from "https://deno.land/x/emit/mod.ts";
+ * import { bundle } from "jsr:@deno/emit";
  * const result = await bundle(
  *   "https://deno.land/std@0.140.0/examples/chat/server.ts",
  * );
@@ -156,7 +156,7 @@ export interface CompilerOptions {
  * ### Example
  *
  * ```ts
- * import { bundle } from "https://deno.land/x/emit/mod.ts";
+ * import { bundle } from "jsr:@deno/emit";
  * const result = await bundle(
  *   "https://deno.land/std@0.140.0/examples/chat/server.ts",
  * );
