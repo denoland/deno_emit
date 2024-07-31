@@ -85,6 +85,7 @@ impl CompilerOptions {
       EmitOptions {
         inline_sources: self.inline_sources,
         source_map_file: None,
+        source_map_base: None,
         remove_comments: false,
         source_map,
       },
@@ -131,11 +132,8 @@ impl TryFrom<ImportMapJsInput> for ImportMapInput {
 #[derive(serde::Serialize, Debug)]
 pub struct SerializableBundleEmit {
   pub code: String,
-  #[cfg_attr(
-    feature = "serialization",
-    serde(rename = "map", skip_serializing_if = "Option::is_none")
-  )]
-  pub maybe_map: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub map: Option<String>,
 }
 
 struct JsLoader {
@@ -248,7 +246,7 @@ pub async fn bundle(
 
   serde_wasm_bindgen::to_value(&SerializableBundleEmit {
     code: result.code,
-    maybe_map: result.maybe_map,
+    map: result.maybe_map,
   })
   .map_err(|err| JsValue::from(js_sys::Error::new(&format!("{:#}", err))))
 }
