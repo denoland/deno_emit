@@ -17,7 +17,7 @@ impl Hook for BundleHook {
   ) -> Result<Vec<deno_ast::swc::ast::KeyValueProp>> {
     Ok(vec![
       ast::KeyValueProp {
-        key: ast::PropName::Ident(ast::Ident::new("url".into(), span)),
+        key: ast::PropName::Ident(ast::IdentName::new("url".into(), span)),
         value: Box::new(ast::Expr::Lit(ast::Lit::Str(ast::Str {
           span,
           value: module_record.file_name.to_string().into(),
@@ -25,7 +25,7 @@ impl Hook for BundleHook {
         }))),
       },
       ast::KeyValueProp {
-        key: ast::PropName::Ident(ast::Ident::new("main".into(), span)),
+        key: ast::PropName::Ident(ast::IdentName::new("main".into(), span)),
         value: Box::new(if module_record.is_entry {
           ast::Expr::Member(ast::MemberExpr {
             span,
@@ -33,7 +33,10 @@ impl Hook for BundleHook {
               span,
               kind: ast::MetaPropKind::ImportMeta,
             })),
-            prop: ast::MemberProp::Ident(ast::Ident::new("main".into(), span)),
+            prop: ast::MemberProp::Ident(ast::IdentName::new(
+              "main".into(),
+              span,
+            )),
           })
         } else {
           ast::Expr::Lit(ast::Lit::Bool(ast::Bool { span, value: false }))

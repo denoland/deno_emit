@@ -160,6 +160,7 @@ pub fn bundle_graph(
   deno_ast::swc::common::GLOBALS.set(&globals, || {
     let source_map_config = deno_ast::SourceMapConfig {
       inline_sources: options.emit_options.inline_sources,
+      maybe_base: None,
     };
 
     let cm = SourceMap::default();

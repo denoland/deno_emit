@@ -8,7 +8,7 @@ members = [
 [workspace.dependencies]
 anyhow = "1.0.44"
 base64 = "0.21.5"
-deno_graph = { version = "0.80.0", default-features = false }
+deno_graph = { version = "0.80.1", default-features = false }
 deno_ast = { version = "0.40.0", features = ["bundler", "codegen", "proposal", "react", "sourcemap", "transforms", "typescript", "visit", "transpiling"] }
 url = { version = "2.3.1" }
 
@@ -17,3 +17,7 @@ codegen-units = 1
 incremental = true
 lto = true
 opt-level = "z"
+
+[patch.crates-io]
+deno_graph = { path = "../deno_graph" }
+deno_ast = { path = "../deno_ast" }
