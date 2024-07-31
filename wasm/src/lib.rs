@@ -132,10 +132,7 @@ impl TryFrom<ImportMapJsInput> for ImportMapInput {
 #[derive(serde::Serialize, Debug)]
 pub struct SerializableBundleEmit {
   pub code: String,
-  #[cfg_attr(
-    feature = "serialization",
-    serde(rename = "map", skip_serializing_if = "Option::is_none")
-  )]
+  #[serde(rename = "map", skip_serializing_if = "Option::is_none")]
   pub maybe_map: Option<String>,
 }
 
