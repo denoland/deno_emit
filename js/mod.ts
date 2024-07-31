@@ -224,7 +224,7 @@ export async function bundle(
   );
   return {
     code: result.code,
-    map: result.maybe_map ?? undefined,
+    map: result.map ?? undefined,
   };
 }
 
