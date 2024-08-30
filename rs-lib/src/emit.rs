@@ -137,7 +137,7 @@ impl swc::bundler::Resolve for BundleResolver<'_> {
       self.0.resolve_dependency(specifier, referrer, false)
     {
       Ok(swc::loader::resolve::Resolution {
-        filename: deno_ast::swc::common::FileName::Url(specifier),
+        filename: deno_ast::swc::common::FileName::Url(specifier.clone()),
         slug: None,
       })
     } else {
