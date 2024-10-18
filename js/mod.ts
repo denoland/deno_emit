@@ -41,7 +41,7 @@ import {
   type CacheSetting,
   createCache,
   type FetchCacher,
-} from "@deno/cache-dir";
+} from "jsr:@deno/cache-dir@0.13.0";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
