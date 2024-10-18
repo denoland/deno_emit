@@ -329,6 +329,8 @@ async function processImportMapInput(
       }
       case "external":
         throw new Error("External import maps are not supported.");
+      case "redirect":
+        throw new Error("Redirects are not supported for import maps.");
       default: {
         const _assertNever: never = data;
         throw new Error("Unexpected kind.");
