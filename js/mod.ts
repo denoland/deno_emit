@@ -41,7 +41,7 @@ import {
   type CacheSetting,
   createCache,
   type FetchCacher,
-} from "jsr:@deno/cache-dir@0.8";
+} from "jsr:@deno/cache-dir@0.13.2";
 
 /** The output of the {@linkcode bundle} function. */
 export interface BundleEmit {
@@ -329,6 +329,8 @@ async function processImportMapInput(
       }
       case "external":
         throw new Error("External import maps are not supported.");
+      case "redirect":
+        throw new Error("Redirects are not supported for import maps.");
       default: {
         const _assertNever: never = data;
         throw new Error("Unexpected kind.");
