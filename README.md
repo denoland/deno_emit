@@ -3,9 +3,9 @@
 [![deno emit](https://jsr.io/badges/@deno/emit)](https://jsr.io/@deno/emit)
 
 > [!WARNING]
-> `deno emit` is deprecated and not recommended anymore. Read
-> [this issue](https://github.com/denoland/deno_emit/issues/200) for better/more
-> powerful alternatives.
+> `deno emit` is deprecated and not recommended anymore. See
+> [this issue](https://github.com/denoland/deno_emit/issues/200) for better
+> alternatives.
 
 Transpile and bundle JavaScript and TypeScript in Deno and Deno Deploy.
 
