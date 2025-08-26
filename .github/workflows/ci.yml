@@ -67,7 +67,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p deno_emit
-      
+
       - name: Publish to JSR
         if: contains(matrix.os, 'ubuntu')
         run: cd js && deno run -A jsr:@david/publish-on-tag@0.1.3
