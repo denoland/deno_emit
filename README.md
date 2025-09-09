@@ -1,8 +1,11 @@
 # deno_emit
 
 [![deno emit](https://jsr.io/badges/@deno/emit)](https://jsr.io/@deno/emit)
-[![Twitter handle][]][Twitter badge]
-[![Discord Chat](https://img.shields.io/discord/684898665143206084?logo=discord&style=social)](https://discord.gg/deno)
+
+> [!WARNING]
+> `deno emit` is deprecated and not recommended anymore. See
+> [this issue](https://github.com/denoland/deno_emit/issues/200) for better
+> alternatives.
 
 Transpile and bundle JavaScript and TypeScript in Deno and Deno Deploy.
 
